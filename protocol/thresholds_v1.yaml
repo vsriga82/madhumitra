@@ -1,0 +1,1217 @@
+# ============================================================
+# MadhuMitra — Thresholds v1.0
+# ============================================================
+# PURPOSE:
+#   Single source of truth for all clinical thresholds and
+#   configuration values. Read by Python at runtime and
+#   injected into the Claude system prompt.
+#
+# COMPANION DOCUMENT:
+#   alert_guide_v1.md — explains WHY each threshold exists.
+#
+# RULE:
+#   Version below must match alert_guide_v1.md.
+#   App refuses to start if versions differ.
+#   Any change requires doctor sign-off + version increment.
+# ============================================================
+
+meta:
+  version: "1.0"
+  companion_document: "alert_guide_v1.md"
+  baseline: "DiRECT Trial (Lancet 2018) + ADA Standards of Care 2024"
+  last_updated: "2026-05-29"
+  approved_by: null
+  clinic: null
+  status: "draft"
+
+
+# ============================================================
+# GLUCOSE
+# Reference: ADA Standards of Care 2024, Section 6
+# ============================================================
+
+glucose:
+  units: "mg/dL"
+
+  fasting:
+    on_track_max: 115
+    low_min: 115
+    low_max: 130
+    medium_min: 130
+    medium_max: 180
+    high_threshold: 180
+    sudden_spike_delta: 40        # rise > 40 from previous day = High
+
+  post_meal:
+    units: "mg/dL"
+    target_max: 180
+    medium_min: 180
+    medium_max: 220
+    high_threshold: 220
+
+
+# ============================================================
+# NUTRITION — MACRONUTRIENT TARGETS
+# Note: protein_target_g and carb_target_g are per-patient
+# values set by the doctor at onboarding — NOT clinic-wide.
+# Each patient record must carry their own targets.
+# Reference: Indian CGM remission study (U of Michigan 2025)
+# ============================================================
+
+nutrition:
+  protein:
+    units: "grams_per_day"
+    # Per-patient target is set by doctor at onboarding.
+    # Default below is used only if no patient target is set.
+    default_target_g: 90
+    # Alert if below target for this many consecutive days
+    below_target_days_low: 1
+    below_target_days_medium: 2
+    below_target_days_high: 3
+    # How far below target triggers an alert (percentage)
+    deviation_threshold_pct: 20   # e.g. <72g when target is 90g = flag
+
+  carbohydrates:
+    units: "grams_per_day"
+    # Per-patient target set by doctor at onboarding.
+    default_target_g: 100
+    # Alert if above target for this many consecutive days
+    above_target_days_low: 1
+    above_target_days_medium: 2
+    above_target_days_high: 3
+    deviation_threshold_pct: 20   # e.g. >120g when target is 100g = flag
+
+
+# ============================================================
+# EXERCISE
+# Reference: ADA Standards of Care 2024, Section 5
+# ============================================================
+
+exercise:
+  units: "minutes_per_day"
+  daily_target: 30
+  accepted_activity_types:
+    - "walk"
+    - "yoga"
+    - "swimming"
+    - "cycling"
+    - "household activity"
+    - "climbing stairs"
+    - "any sustained physical activity"
+
+  missed_days_severity:
+    low: 1
+    medium: 2
+    high: 3
+
+
+# ============================================================
+# SLEEP
+# Reference: PMC sleep-glycaemia studies; ADA 2024 Section 5
+# Optimal: 7–8 hours. Below 6 hours = 2x hypertension risk.
+# ============================================================
+
+sleep:
+  units: "hours_per_night"
+  optimal_min: 7
+  optimal_max: 8
+  low_threshold: 6              # below 6hrs = Low alert
+  high_threshold: 9             # above 9hrs also flagged (oversleeping signal)
+
+  # Alert when sleep is poor for consecutive days
+  consecutive_days_medium: 2    # 2 nights below threshold = Medium
+  consecutive_days_high: 3      # 3 nights below threshold = High
+
+
+# ============================================================
+# STRESS
+# Captured as a self-reported score (1–5) and free-text.
+# Cortisol from chronic stress directly raises blood glucose
+# and worsens insulin resistance.
+# Reference: ADA 2024 — Psychosocial Care, Section 5
+# ============================================================
+
+stress:
+  score_scale: "1_to_5"         # 1 = no stress, 5 = extreme stress
+  high_score_threshold: 4       # score >= 4 = high stress day
+  low_threshold: 3              # score <= 3 = normal range
+
+  # Alert when high stress persists
+  consecutive_days_medium: 2    # 2 days high stress = Medium
+  consecutive_days_high: 3      # 3 days high stress = High
+
+  # Free-text keywords that indicate high stress
+  stress_keywords:
+    - "very stressed"
+    - "extremely stressed"
+    - "very anxious"
+    - "panic"
+    - "overwhelmed"
+    - "work pressure"
+    - "boss was angry"
+    - "family fight"
+    - "argument"
+    - "very worried"
+    - "cannot cope"
+    - "too much pressure"
+    - "mental pressure"
+    - "tension"
+
+
+# ============================================================
+# STRESS + SLEEP COMBINATION RULE
+# The compounding risk pattern:
+# High stress + poor sleep for 3 consecutive days = High alert
+# Rationale: cortisol elevated → insulin resistance rising →
+# glucose spike likely within 24–48 hours.
+# Coach intervenes BEFORE the glucose alert fires.
+# ============================================================
+
+stress_sleep_combination:
+  consecutive_days_high: 3      # 3 days of BOTH = High alert
+  consecutive_days_medium: 2    # 2 days of BOTH = Medium alert
+  note: >
+    This is a leading indicator alert — it fires before glucose
+    is affected. Coach intervention here prevents the glucose
+    alert from firing at all. Higher clinical value than a
+    reactive glucose alert.
+
+
+# ============================================================
+# SCREEN TIME
+# Indirect signal: high screen time → disrupted sleep →
+# worse glycaemic control. Treated as a contributing factor,
+# not a standalone alert trigger.
+# ============================================================
+
+screen_time:
+  units: "hours_per_day"
+  evening_cutoff_hour: 21       # screen time after 9pm is higher weight
+  high_threshold: 4             # > 4hrs/day = flag as contributing factor
+  note: >
+    Screen time is not an independent alert trigger.
+    It is used as a contributing factor when combined with
+    poor sleep. High screen time + poor sleep = amplified
+    sleep alert weight.
+
+
+# ============================================================
+# BLOOD PRESSURE
+# Reference: ADA Diabetes Care — BP threshold for diabetes
+# patients: 130/80 mmHg (lower than general population)
+# ============================================================
+
+blood_pressure:
+  units: "mmHg"
+  systolic:
+    on_track_max: 120
+    low_max: 130
+    medium_max: 140
+    high_threshold: 140
+  diastolic:
+    on_track_max: 80
+    low_max: 85
+    medium_max: 90
+    high_threshold: 90
+
+  # ADA 2024 threshold for diabetes patients is 130/80
+  ada_diabetes_threshold_systolic: 130
+  ada_diabetes_threshold_diastolic: 80
+
+
+# ============================================================
+# MOOD AND CRAVINGS
+# Captured as structured score (1–5) and free-text.
+# Mood is a leading indicator for dietary deviation.
+# ============================================================
+
+mood:
+  score_scale: "1_to_5"         # 1 = very low, 5 = excellent
+  low_threshold: 2              # score <= 2 = low mood day
+
+  consecutive_days_medium: 2
+  consecutive_days_high: 3
+
+cravings:
+  score_scale: "1_to_5"         # 1 = no cravings, 5 = intense cravings
+  high_threshold: 4             # score >= 4 = high craving day
+  note: >
+    High cravings flag is reduced in weight if the patient
+    also reports not acting on them. Coach acknowledges and
+    supports rather than escalating.
+
+
+# ============================================================
+# ENERGY LEVEL
+# Subjective score — useful as dropout risk indicator.
+# Low energy for 3+ days may indicate programme fatigue.
+# ============================================================
+
+energy:
+  score_scale: "1_to_5"         # 1 = exhausted, 5 = very energetic
+  low_threshold: 2
+  consecutive_days_medium: 2
+  consecutive_days_high: 3
+
+
+# ============================================================
+# FASTING
+# Doctor sets whether patient is on an intermittent fasting
+# protocol. Affects how glucose readings are interpreted.
+# ============================================================
+
+fasting:
+  note: >
+    Fasting protocol is set per-patient by the doctor at
+    onboarding. On a self-reported fasting day, lower glucose
+    is expected and should not trigger a Low alert.
+    The system checks fasting_day flag before applying
+    glucose thresholds.
+  fasting_day_glucose_adjustment: true
+
+
+# ============================================================
+# BODY MEASUREMENTS
+# Weekly — not daily. Doctor sets measurement schedule.
+# Reference: Misra et al. JAPI 2009 — Indian-specific
+# waist circumference thresholds.
+# ============================================================
+
+body_measurements:
+  measurement_frequency: "weekly"
+  waist_circumference:
+    units: "cm"
+    high_risk_male: 90          # Misra et al. Indian threshold
+    high_risk_female: 80
+  weight:
+    units: "kg"
+    tracked_daily: true         # Weight logged daily
+    alert_thresholds_in_weight_section: true
+
+
+# ============================================================
+# MISSED LOG
+# ============================================================
+
+missed_log:
+  low: 1
+  medium_consecutive: 2
+  high_consecutive: 3
+
+
+# ============================================================
+# WEIGHT
+# ============================================================
+
+weight:
+  units: "kg"
+  measurement_window_days: 7
+  normal_fluctuation_ignore: 0.5
+  low_gain_min: 0.5
+  low_gain_max: 1.0
+  medium_gain_min: 1.0
+  medium_gain_max: 2.0
+  high_gain_min: 2.0
+
+
+# ============================================================
+# SYMPTOM SIGNALS — always trigger HIGH regardless of glucose
+# Reference: ADA 2024 Sections 11 and 12
+# ============================================================
+
+symptom_signals:
+  always_high:
+    foamy_urine:
+      keywords: ["foamy urine", "frothy urine", "urine looks foamy", "foam in urine", "bubbly urine"]
+      clinical_concern: "Possible proteinuria — diabetic kidney disease"
+      ada_reference: "ADA 2024 Section 11"
+    blurry_vision:
+      keywords: ["blurry vision", "cloudy vision", "cannot see clearly", "vision blurred", "eyes blurry"]
+      clinical_concern: "Possible retinopathy or hyperglycemia-induced osmotic change"
+      ada_reference: "ADA 2024 Section 12"
+    persistent_dizziness:
+      keywords: ["dizzy", "dizziness", "feeling dizzy", "very dizzy", "head spinning", "giddy", "lightheaded"]
+      clinical_concern: "Possible hypoglycemia or autonomic neuropathy"
+      ada_reference: "ADA 2024 Section 12"
+    excessive_thirst_urination:
+      keywords: ["very thirsty", "drinking a lot", "urinating frequently", "frequent urination", "cannot stop drinking"]
+      clinical_concern: "Classic hyperglycemia symptom cluster"
+      ada_reference: "ADA 2024 Section 2"
+      rule: "Both thirst AND urination must be present together"
+    numbness_tingling:
+      keywords: ["numbness", "tingling", "pins and needles", "numb feet", "tingling hands", "burning feet"]
+      clinical_concern: "Early peripheral neuropathy signal"
+      ada_reference: "ADA 2024 Section 12"
+    chest_pain:
+      keywords: ["chest pain", "chest discomfort", "chest tightness", "heart pain", "pressure in chest"]
+      clinical_concern: "Cardiac concern — escalate to doctor immediately"
+      ada_reference: "ADA 2024 Section 10"
+      escalate_to_doctor: true
+    sudden_weight_loss:
+      threshold_kg: 2.0
+      window_days: 7
+      clinical_concern: "Possible metabolic concern or insulin deficiency"
+
+
+# ============================================================
+# SENTIMENT
+# ============================================================
+
+sentiment:
+  negative_drift_medium_days: 2
+  acute_distress_keywords:
+    - "i can't do this"
+    - "i give up"
+    - "i'm very scared"
+    - "something is wrong"
+    - "feeling terrible"
+    - "cannot continue"
+    - "want to stop"
+  positive_engagement_keywords:
+    - "feeling great"
+    - "very motivated"
+    - "on track"
+    - "feeling good"
+    - "happy with progress"
+    - "staying strong"
+  indian_context_distress:
+    - "body is not cooperating"
+    - "feeling heavy"
+    - "not feeling so good"
+    - "body feels off"
+
+
+# ============================================================
+# COMBINATION RULES
+# ============================================================
+
+combination_rules:
+  two_low_signals_escalate_to: "medium"
+  festival_context_reduce_weight: true
+  festival_keywords:
+    - "wedding"
+    - "festival"
+    - "diwali"
+    - "eid"
+    - "pongal"
+    - "navratri"
+    - "birthday party"
+    - "family function"
+    - "office party"
+    - "celebration"
+  medication_missed_glucose_high_threshold: 150
+  new_patient_queue_days: 7
+
+
+# ============================================================
+# CONFIDENCE AND ROUTING
+# ============================================================
+
+confidence:
+  auto_list: "high"
+  manual_queue: "low"
+  borderline_glucose_queue:
+    min: 125
+    max: 135
+
+
+# ============================================================
+# ESCALATE TO DOCTOR
+# ============================================================
+
+escalate_to_doctor:
+  symptom_triggers:
+    - "chest pain"
+    - "chest discomfort"
+    - "foamy urine"
+    - "blurry vision"
+    - "persistent dizziness"
+  glucose_trigger:
+    fbs_above: 200
+    consecutive_days: 2
+  patient_requested: true
+
+
+# ============================================================
+# OUT OF SCOPE
+# ============================================================
+
+out_of_scope:
+  weight_fluctuation_ignore_kg: 0.5
+  exercise_type_variation: true
+  low_glucose_no_medication: true
+  planned_fasting_days: true
+  positive_emotional_entries: true
+  single_high_stress_day: true      # one day is noise
+  single_poor_sleep_night: true     # one night is noise
+
+
+# ============================================================
+# EXERCISE TYPES
+# Patients log exercise type, not just duration.
+# Two categories matter clinically for diabetes reversal.
+# ============================================================
+
+exercise_types:
+  cardio:
+    - "walk"
+    - "brisk walk"
+    - "yoga"
+    - "swimming"
+    - "cycling"
+    - "running"
+    - "jogging"
+    - "dance"
+    - "aerobics"
+    - "zumba"
+    - "treadmill"
+  strength:
+    - "upper body weights"
+    - "lower body weights"
+    - "full body weights"
+    - "resistance training"
+    - "strength training"
+    - "gym weights"
+    - "dumbbell workout"
+    - "weight training"
+    - "kettlebell"
+    - "bodyweight exercises"
+    - "push ups"
+    - "squats"
+
+
+# ============================================================
+# WEIGHT TRAINING GAP
+# Patient is exercising but skipping strength training.
+# Cardio-only misses the insulin sensitivity benefit of
+# muscle building that is a core pillar of reversal.
+# ============================================================
+
+weight_training_gap:
+  units: "consecutive_cardio_only_days"
+  low_threshold: 3              # 3 days cardio-only = Low
+  medium_threshold: 5           # 5 days cardio-only = Medium
+  note: >
+    This is not a failure alert — patient IS exercising.
+    It is a balance alert. Coach nudges toward adding
+    at least 2 strength sessions per week.
+  expected_strength_days_per_week: 2
+
+
+# ============================================================
+# FASTING CONSISTENCY
+# Only applies to patients where doctor has set
+# fasting_protocol: true at onboarding.
+# Inconsistent fasting gives neither metabolic benefit
+# nor habit formation.
+# ============================================================
+
+fasting_consistency:
+  window_days: 7
+  consistency_min_pct: 60       # must fast >= 60% of expected days
+  medium_threshold_weeks: 1     # 1 week below consistency = Medium
+  high_threshold_weeks: 2       # 2 consecutive weeks below = High
+  note: >
+    Applies regardless of whether patient never built the
+    habit or had it and lost it. Both patterns signal
+    the same risk: fasting pillar is not being maintained.
+
+
+# ============================================================
+# PLATEAU AND SILENT DISENGAGEMENT — NUDGE ALERT
+# This is NOT a clinical alert. It is a coach nudge.
+# Patient looks fine on individual metrics but the
+# 10–14 day trend shows declining engagement and
+# plateauing results — the pattern that precedes dropout.
+#
+# Research: 53% dropout in Indian lifestyle-only programs.
+# Intensive coaching at the right moment reduced this to
+# near zero. This nudge is where that difference is made.
+# Reference: PMC5320825 — Indian T2D reversal study
+# ============================================================
+
+plateau_nudge:
+  detection_window_days: 14
+  severity: "nudge"             # separate from High/Medium/Low
+
+  glucose_plateau:
+    change_threshold_mgdl: 5    # < 5 mg/dL change over window = plateau
+    note: "Compare average of last 7 days vs previous 7 days"
+
+  weight_plateau:
+    change_threshold_kg: 0.3    # < 0.3 kg change over window = plateau
+    note: "Only flag if patient was previously losing weight"
+
+  log_quality_decline:
+    enabled: true
+    signals:
+      - "free_text entries getting shorter over window"
+      - "fewer emotional or descriptive words"
+      - "entries becoming copy-paste repetitive"
+      - "reduction in detail about food diary"
+    note: >
+      LLM assesses qualitative trend across the window.
+      A patient writing 'walk done. rice for lunch.' every
+      day after previously writing detailed entries is a
+      disengagement signal even if metrics look fine.
+
+  combined_trigger:
+    note: >
+      Plateau nudge fires when at least TWO of the following
+      are true over the detection window:
+      1. Glucose plateau detected
+      2. Weight plateau detected
+      3. Log quality declining
+      4. Fasting inconsistency present
+      5. Weight training gap present
+    minimum_signals: 2
+
+  what_coach_does: >
+    Warm check-in call — not a clinical intervention.
+    Goal is re-engagement and motivation reset, not
+    protocol correction. 'How are you feeling about
+    your progress?' catches this before the patient
+    quietly disappears.
+
+
+# ============================================================
+# PROGRAM HISTORY
+# Per-patient block set at onboarding by doctor/admin.
+# Required for plateau detection and contextual reasoning.
+# Without this, the LLM cannot detect trend or plateau.
+# ============================================================
+
+program_history_required_fields:
+  - program_start_date
+  - week_number
+  - initial_fbs_mgdl
+  - initial_weight_kg
+  - protein_target_g
+  - carb_target_g
+  - fasting_protocol
+  - fasting_expected_days_per_week
+  - strength_training_required
+
+
+# ============================================================
+# PRIORITY SCORING
+# Used to rank patients within the same severity tier.
+# All High patients are ranked against each other.
+# All Medium patients are ranked against each other.
+# Scores are calculated deterministically in Python after
+# all Claude calls complete — no extra LLM call needed.
+#
+# Doctor can adjust weights during calibration without
+# touching any code — just update this file and increment
+# the version number with sign-off.
+#
+# How it works:
+#   Each signal that fires adds its weight to the score.
+#   Higher score = higher urgency = appears first in list.
+# ============================================================
+
+priority_scoring:
+
+  # ── Symptom signals — highest weight ──────────────────────
+  # These indicate possible complications beyond glucose control.
+  # A patient with a symptom signal always ranks above one without.
+  symptoms:
+    chest_pain: 50              # Cardiac concern — always top of list
+    foamy_urine: 40             # Possible nephropathy
+    blurry_vision: 40           # Possible retinopathy
+    numbness_tingling: 35       # Peripheral neuropathy signal
+    excessive_thirst_urination: 35
+    persistent_dizziness: 30    # Hypoglycemia or autonomic neuropathy
+
+  # ── Medication ────────────────────────────────────────────
+  medication:
+    missed_with_high_glucose: 25   # Missed AND glucose above threshold
+    missed_alone: 15               # Missed but glucose controlled
+
+  # ── Pattern signals — consecutive days ───────────────────
+  # Per-day multiplier — longer pattern = higher urgency
+  consecutive_days:
+    weight_per_day: 8           # e.g. 3 consecutive days = +24 points
+    max_days_counted: 7         # cap at 7 days to avoid runaway scores
+
+  # ── Trend signals ─────────────────────────────────────────
+  # Is the patient getting worse, stable, or improving?
+  glucose_trend:
+    rising: 15                  # glucose higher than yesterday
+    stable: 0                   # no change
+    improving: -10              # glucose lower — reduces urgency
+
+  # ── Multi-signal combination ──────────────────────────────
+  # Each additional signal firing adds to the score
+  per_additional_signal: 5      # e.g. 4 signals = +20 points
+
+  # ── Stress and sleep combination ─────────────────────────
+  stress_sleep_combined_days:
+    weight_per_day: 10          # higher than individual signals
+    max_days_counted: 3
+
+  # ── Missed log ────────────────────────────────────────────
+  missed_log:
+    per_consecutive_day: 12     # missing data is high urgency
+
+  # ── Blood pressure ────────────────────────────────────────
+  blood_pressure:
+    above_ada_threshold: 20     # systolic > 130 or diastolic > 80
+    stage_2_hypertension: 35    # systolic > 140 or diastolic > 90
+
+  # ── Fasting and weights gap ───────────────────────────────
+  # Lower weight — these are programme adherence signals
+  # not acute clinical signals
+  programme_adherence:
+    weights_gap_5_days: 10
+    fasting_inconsistency: 8
+
+  # ── Score interpretation guide ───────────────────────────
+  # For coach transparency — shown on demand
+  score_bands:
+    critical: 80                # score >= 80: contact immediately
+    urgent: 50                  # score 50-79: contact today
+    standard: 20                # score 20-49: contact within 24hrs
+    monitor: 0                  # score < 20: note at next check-in
+
+  note: >
+    Scores are not shown to the coach by default.
+    They drive the sort order within each tier.
+    Coach can request to see the score breakdown
+    to understand why a patient ranked where they did.
+    Every score component maps to a specific signal
+    so the ranking is always explainable.
+
+
+# ============================================================
+# SYMPTOM CLASSIFICATION
+# Symptoms arrive as a multi-select array from the app.
+# Patient can select multiple symptoms per day.
+# Example: ["dizziness", "acidity/heartburn", "headache"]
+#
+# Three tiers — different clinical urgency and handling:
+# Tier 1: Rules check catches these — no LLM needed for flag
+# Tier 2: LLM uses these as amplifiers in reasoning
+# Tier 3: LLM notes these — lower weight in severity scoring
+# ============================================================
+
+symptom_classification:
+
+  tier_1_always_high:
+    # Caught by parser rules check — immediately flag High
+    # regardless of any other signal
+    symptoms:
+      - "dizziness"
+      - "swelling"              # possible edema — kidney or cardiac
+      - "foamy urine"
+      - "blurry vision"
+      - "chest pain"
+      - "chest discomfort"
+      - "numbness"
+      - "tingling"
+    note: >
+      Parser flags these directly. LLM still receives them
+      as context but severity is pre-determined as High.
+
+  tier_2_medium_amplifier:
+    # These elevate severity when combined with other signals
+    # Alone they route to Low or Manual Queue
+    # Combined with glucose deviation or stress = Medium
+    symptoms:
+      - "sleepy/drowsy"         # post-meal glucose spike signal
+      - "headache"              # dehydration or hypoglycemia signal
+      - "anxiety"               # cortisol → insulin resistance connection
+      - "constipation"          # common with high protein — flag if 3+ days
+      - "snoring"               # sleep apnea signal — combine with sleep quality
+      - "body pain"             # inflammation signal, common in reversal phase
+    combination_rules:
+      snoring_plus_poor_sleep_plus_high_glucose: "escalate to Medium"
+      headache_plus_low_glucose: "possible hypoglycemia — escalate to High"
+      anxiety_plus_high_stress_score: "amplify stress alert weight"
+      sleepy_drowsy_plus_high_postmeal: "post-meal spike confirmed — escalate"
+
+  tier_3_monitor:
+    # Note and track — do not alert on these alone
+    # LLM includes in reasoning context but low weight
+    # Coach sees them in patient detail, not in alert reason
+    symptoms:
+      - "acidity/heartburn/reflux"   # common during dietary change
+      - "acne"                       # hormonal shift — can be positive reversal signal
+      - "hair fall"                  # hormonal or nutritional — monitor trend
+      - "burping"                    # digestive adjustment
+      - "gas"                        # dietary fibre adjustment
+      - "dry cough"                  # unrelated to reversal typically
+      - "boil"                       # inflammatory — note if recurring
+    note: >
+      Acne and hair fall can indicate hormonal rebalancing
+      during reversal — sometimes a positive metabolic signal.
+      Do not over-flag. Monitor trend over 2+ weeks.
+
+  # How many tier_2 symptoms trigger an alert alone
+  tier_2_standalone_alert_count: 3   # 3+ tier_2 symptoms = Medium even without other signals
+
+
+# ============================================================
+# MOOD AND CRAVINGS
+# Both arrive in one multi-select array from the app.
+# Patient can select multiple items per day.
+# Parser splits them into mood_signals and craving_signals.
+#
+# Example input:  ["Sad", "Frustrated", "Craving Sweet"]
+# After split:
+#   mood_signals:    ["Sad", "Frustrated"]
+#   craving_signals: ["Craving Sweet"]
+# ============================================================
+
+mood_classification:
+
+  mood_signals:
+    - "Happy"
+    - "Sad"
+    - "Frustrated"
+    - "Bored"
+    - "Angry"
+    - "Other"
+
+  craving_signals:
+    - "Craving Sweet"
+    - "Craving Salty"
+    - "Craving Crunchy"
+
+  # Clinical meaning of craving types
+  craving_clinical_context:
+    sweet: >
+      Sugar craving — possible low blood glucose or insulin spike.
+      High dietary deviation risk for next 24 hours.
+      Combine with glucose reading for context.
+    salty: >
+      Mineral or electrolyte craving — possible dehydration
+      or adrenal stress response. Common during fasting days.
+    crunchy: >
+      Texture-based stress craving — often linked to anxiety
+      or emotional eating pattern. Combine with mood signals.
+
+  # Multiple cravings in one day = stronger signal
+  multiple_cravings_same_day:
+    count_2: "medium_dietary_risk"    # 2 craving types = elevated risk
+    count_3: "high_dietary_risk"      # all 3 = highest dietary deviation risk
+
+  # Negative mood scoring
+  negative_moods:
+    - "Sad"
+    - "Frustrated"
+    - "Angry"
+    - "Bored"
+
+  positive_moods:
+    - "Happy"
+
+  # Alert thresholds
+  consecutive_negative_mood_days_medium: 2
+  consecutive_negative_mood_days_high: 3
+
+  # Multiple negative moods same day = amplified signal
+  multiple_negative_moods_same_day: true
+  note: >
+    "Sad + Frustrated + Craving Sweet" on the same day is
+    a stronger signal than any one alone. LLM reasons across
+    the full combination. Parser passes the split arrays
+    to the LLM as separate context fields.
+
+
+# ============================================================
+# SLEEP QUALITY DROPDOWN
+# Qualitative signal alongside sleep_hours (quantitative)
+# Both are required for accurate sleep assessment.
+# ============================================================
+
+sleep_quality:
+  options:
+    slept_well_woke_fresh:
+      score: 5
+      weight: "positive — reduces sleep alert weight"
+    trouble_falling_asleep:
+      score: 3
+      weight: "moderate — combine with hours for full picture"
+    woke_up_tired:
+      score: 2
+      weight: "concerning — likely poor sleep quality despite adequate hours"
+    woke_up_multiple_times:
+      score: 1
+      weight: "high concern — fragmented sleep, poor glycaemic impact"
+
+  # Combination rules
+  combination_rules:
+    low_hours_plus_poor_quality: "amplify sleep alert — double penalty"
+    adequate_hours_plus_woke_tired: "flag as poor sleep despite duration"
+    adequate_hours_plus_woke_fresh: "genuine good sleep — no flag"
+    note: >
+      6.5 hours + "woke up multiple times" is clinically worse
+      than 6 hours + "slept well and woke fresh".
+      Quality overrides quantity when they conflict.
+
+
+# ============================================================
+# EXERCISE NOTES (free-text companion to exercise fields)
+# Each exercise entry has a Note field in the app.
+# These notes are unstructured and go to the LLM.
+# ============================================================
+
+exercise_notes:
+  clinical_significance: >
+    Exercise type alone is insufficient. A note saying
+    "used 2kg dumbbells, very easy" alongside
+    exercise_type: "upper body weights" means the
+    strength stimulus was likely insufficient for
+    meaningful insulin sensitivity benefit.
+    LLM must assess note quality, not just exercise type.
+
+  low_intensity_indicators:
+    - "very light"
+    - "easy"
+    - "2kg"
+    - "1kg"
+    - "just stretching"
+    - "gentle"
+    - "slow walk"
+    - "could not complete"
+    - "stopped early"
+
+  adequate_intensity_indicators:
+    - "challenging"
+    - "sweating"
+    - "good workout"
+    - "heavy"
+    - "completed all sets"
+    - "pushed myself"
+
+  note: >
+    Low intensity exercise note + short duration = the
+    strength training requirement may not be met even
+    if exercise_type shows weights. LLM flags this
+    as a partial gap rather than a full weights gap.
+
+
+# ============================================================
+# CLINIC CONTEXT
+# Declares clinic-specific assumptions explicitly.
+# This section is injected into the Claude system prompt
+# so the LLM knows what context to apply when reasoning.
+#
+# When onboarding a new clinic, only this section and the
+# threshold values change. The code never changes.
+# A UK clinic, a thyroid clinic, a weight management clinic
+# all use the same parser.py, reasoning.py, ranker.py, app.py
+# — they just have their own version of this file.
+#
+# This is the multi-tenant architecture described in
+# Component 2 (Protocol Vault) of the MadhuMitra PRD.
+# ============================================================
+
+clinic_context:
+
+  # ── Program identity ──────────────────────────────────────
+  clinic_name: null                    # Set at onboarding
+  program_type: "diabetes_reversal"    # e.g. diabetes_reversal, thyroid,
+                                       # weight_management, hormone_health
+  program_name: null                   # e.g. "Turn Around Diabetes"
+  program_version: null                # e.g. "DiRECT-aligned v2"
+
+  # ── Patient population ────────────────────────────────────
+  population_region: "India"           # Affects dietary and metabolic context
+  population_description: >
+    Urban and semi-urban Indian adults with Type 2 diabetes
+    enrolled in a structured reversal program. Higher visceral
+    adiposity at lower BMI compared to Western populations.
+    Rice and wheat staple diet. Extended family social eating
+    contexts (weddings, festivals) are common deviation triggers.
+
+  # ── Dietary context ───────────────────────────────────────
+  # Injected into prompt so LLM interprets food diary correctly
+  dietary_context: "South Asian"       # South Asian, Western, East Asian,
+                                       # Mediterranean, Middle Eastern etc.
+  staple_foods:
+    - "rice"
+    - "roti/chapati"
+    - "dal"
+    - "sambar"
+    - "idli"
+    - "dosa"
+    - "sabzi"
+  common_deviation_foods:
+    - "mithai/sweets"
+    - "poori"
+    - "paratha with butter"
+    - "biryani"
+    - "fried snacks"
+  social_eating_contexts:
+    - "wedding"
+    - "festival"
+    - "family function"
+    - "office party"
+    - "religious occasion"
+
+  # ── Language ──────────────────────────────────────────────
+  primary_language: "English"
+  known_regional_languages:            # Patient may write logs in these
+    - "Hindi"
+    - "Tamil"
+    - "Telugu"
+    - "Kannada"
+    - "Malayalam"
+  multilingual_support: false          # Phase 2 feature — English only in MVP
+  regional_language_note: >
+    If patient free-text appears to be in a regional language,
+    flag in reasoning trace as: "Note: log appears to be in
+    [language] — sentiment analysis may be limited."
+
+  # ── Program pillars ───────────────────────────────────────
+  # The specific intervention components this program uses.
+  # LLM uses this to understand what it should be monitoring.
+  program_pillars:
+    - name: "Nutrition"
+      description: "Low carb, high protein diet with personalised macronutrient targets"
+      monitored_signals: ["fbs_mgdl", "carbs_g", "protein_g", "food_diary"]
+
+    - name: "Intermittent fasting"
+      description: "Structured fasting protocol set per patient by doctor"
+      monitored_signals: ["fasting_day", "fasting_consistency"]
+      optional: false
+
+    - name: "Exercise — cardio"
+      description: "Minimum 30 minutes daily sustained activity"
+      monitored_signals: ["exercise_minutes", "exercise_type", "exercise_note"]
+
+    - name: "Exercise — strength"
+      description: "Minimum 2 strength training sessions per week"
+      monitored_signals: ["exercise_type", "exercise_note", "weight_training_gap"]
+
+    - name: "Sleep"
+      description: "7-8 hours quality sleep — directly impacts glycaemic control"
+      monitored_signals: ["sleep_hours", "sleep_quality", "screen_time_hours"]
+
+    - name: "Stress management"
+      description: "Chronic stress raises cortisol which directly elevates glucose"
+      monitored_signals: ["stress_score", "moods", "free_text"]
+
+  # ── Clinic-specific interpretation notes ──────────────────
+  # These are passed to the LLM as context — not as rules.
+  # The LLM uses these to interpret signals correctly for
+  # this population. A different clinic replaces these.
+  interpretation_notes:
+    - >
+      Indian patients have higher visceral adiposity at lower BMI.
+      Do not discount clinical signals based on normal Western BMI.
+    - >
+      A single dietary deviation at a wedding or festival is
+      expected and culturally normal. Weight it lower than a
+      deliberate dietary break unless glucose is also elevated.
+    - >
+      Patient apologies in free-text ("sorry doctor I cheated")
+      indicate self-awareness and continued engagement — a
+      positive behavioural signal, not a distress indicator.
+    - >
+      "Feeling heavy" in Indian English means fatigue or physical
+      discomfort — not weight gain. Do not treat as a weight signal.
+    - >
+      Silence (missed log) carries more clinical significance
+      than a brief apologetic message. A patient who writes in
+      is still engaged with the program.
+
+  # ── What a different clinic would change ─────────────────
+  # This comment block documents what to update for a new clinic.
+  # The code (parser.py, reasoning.py, ranker.py, app.py) stays
+  # identical. Only this file and alert_guide_v1.md are replaced.
+  #
+  # For a UK diabetes reversal clinic:
+  #   population_region: "United Kingdom"
+  #   dietary_context: "Western"
+  #   staple_foods: ["bread", "pasta", "potatoes", "meat"]
+  #   social_eating_contexts: ["pub", "christmas dinner", "takeaway"]
+  #   regional_languages: [] (English only)
+  #   interpretation_notes: [UK-specific notes]
+  #
+  # For an Indian thyroid management clinic:
+  #   program_type: "thyroid_management"
+  #   program_pillars: [different pillars]
+  #   monitored_signals: [TSH, T3, T4 etc.]
+  #   Same population and dietary context as this clinic.
+  #
+  # The architecture scales horizontally — each clinic is an
+  # isolated instance with their own protocol files.
+  # ============================================================
+
+
+# ============================================================
+# ONBOARDING SCHEMA
+# Fields collected at patient onboarding by the clinic.
+# Stored in program_history per patient.
+# Loaded with every daily log — gives LLM full patient context.
+# Doctor sets clinical_targets per patient at onboarding.
+# ============================================================
+
+onboarding_schema:
+
+  # ── Program details ───────────────────────────────────────
+  program_fields:
+    - program_start_date
+    - week_number
+    - initial_fbs_mgdl
+    - initial_weight_kg
+    - protein_target_g           # per-patient, set by doctor
+    - carb_target_g              # per-patient, set by doctor
+    - fasting_protocol           # boolean
+    - fasting_expected_days_per_week
+    - strength_training_required # boolean
+
+  # ── Clinical targets ──────────────────────────────────────
+  # Set per patient by doctor at onboarding.
+  # Overrides clinic-wide thresholds for this patient.
+  clinical_targets:
+    fbs_target_mgdl:
+      description: "Doctor-set FBS goal for this patient"
+      default: 95
+      note: "Varies by age, comorbidities, program stage"
+    fbs_hypoglycemia_risk_mgdl:
+      description: "Below this = possible hypoglycemia — flag if medicated"
+      default: 80
+      conservative: 85           # used for elderly or CKD patients
+    conservative_targets:
+      description: "True for elderly patients or those with complex comorbidities"
+      default: false
+
+  # ── Comorbidities ──────────────────────────────────────────
+  # Captured at onboarding. Passed to LLM as context.
+  # LLM reasons about signal interactions — no hardcoded rules.
+  # Reference: Indian T2D lifestyle program study (Nature, 2025)
+  # Hypertension: 56.8%, Dyslipidemia: 25.7%, CKD: common
+  comorbidities:
+    hypertension:
+      prevalence_indian_t2d: "56.8%"
+      clinical_impact: >
+        Affects BP threshold interpretation. Patient on BP
+        medication — check for medication interactions with
+        glucose lowering. More conservative exercise targets.
+    thyroid_disorder:
+      prevalence_indian_t2d: "common, especially females"
+      clinical_impact: >
+        Hypothyroidism worsens insulin resistance and weight.
+        Fatigue signals may be thyroid-related, not program-related.
+        Confirm thyroid medication compliance alongside diabetes medication.
+    chronic_kidney_disease:
+      prevalence_indian_t2d: "~25% globally"
+      clinical_impact: >
+        Foamy urine is especially significant — escalate to doctor
+        immediately regardless of glucose level.
+        More conservative glucose targets. Higher hypoglycemia risk threshold.
+        Protein targets may need adjustment — high protein can stress kidneys.
+    dyslipidemia:
+      prevalence_indian_t2d: "25.7%"
+      clinical_impact: >
+        Dietary fat and carb content more critical to monitor.
+        Fatty liver often coexists — monitor for digestive symptoms.
+    cardiovascular_disease:
+      prevalence_indian_t2d: "significant"
+      clinical_impact: >
+        Any chest pain or discomfort = immediate doctor escalation.
+        Exercise intensity targets more conservative.
+        Stress management is especially critical.
+    anemia:
+      prevalence_indian_females: "~30%"
+      clinical_impact: >
+        Fatigue and low energy may be anemia-related, not program-related.
+        Do not over-flag energy score deviations without considering anemia.
+        Iron supplement compliance is a monitoring signal.
+    vitamin_d_deficiency:
+      prevalence_indian_t2d: "46.2%"
+      clinical_impact: >
+        Vitamin D deficiency worsens insulin resistance.
+        Fatigue, body pain, and low mood can all be Vitamin D symptoms.
+        Monitor supplement compliance.
+    pcod:
+      prevalence: "common in Indian females with T2D"
+      clinical_impact: >
+        Insulin resistance is higher. Weight loss is harder.
+        Hormonal fluctuations affect mood and cravings — weight
+        these signals slightly lower for PCOD patients.
+        Fasting protocols may need adjustment during cycle.
+    fatty_liver:
+      prevalence_indian_t2d: "high — linked to central obesity"
+      clinical_impact: >
+        Digestive symptoms (acidity, bloating) may be liver-related.
+        High carb and fat intake especially harmful.
+        Weight loss is a primary treatment — track weight trend carefully.
+
+  # ── Medications ───────────────────────────────────────────
+  medication_fields:
+    - diabetes_medication         # boolean
+    - bp_medication               # boolean — affects hypoglycemia risk
+    - thyroid_medication          # boolean
+    - cholesterol_medication      # boolean
+    - other                       # free text — supplements etc.
+
+  # ── Baseline labs ─────────────────────────────────────────
+  # Collected at onboarding. Used by LLM for context.
+  # Not re-checked daily — static reference point.
+  baseline_lab_fields:
+    hba1c_pct:
+      description: "Glycated haemoglobin at program start"
+      note: "Higher baseline = more room for improvement = positive framing"
+    cholesterol_ldl:
+      description: "LDL at program start"
+      high_risk_threshold: 160
+    vitamin_d:
+      description: "Vitamin D level at program start (nmol/L)"
+      deficient_threshold: 25
+    creatinine:
+      description: "Kidney function marker at program start"
+      concern_threshold_male: 1.2
+      concern_threshold_female: 1.0
+
+  # ── How LLM uses onboarding data ─────────────────────────
+  llm_usage_note: >
+    The full program_history block is passed to the LLM with
+    every daily reasoning call. The LLM is instructed to:
+    1. Interpret signals in the context of comorbidities
+    2. Apply clinical_targets instead of clinic-wide defaults
+    3. Flag when symptoms may be comorbidity-related vs program-related
+    4. Note medication compliance for all medications, not just diabetes meds
+    5. Use baseline_labs to contextualise current readings
+    The goal is for the LLM to reason about this patient
+    as a whole person — not just today's glucose reading.
+
+
+# ============================================================
+# FOLLOW-UP AND COOLING PERIOD
+# After coach contacts a patient, a cooling period begins.
+# During cooling: same deviations go to Follow-up tab.
+# NEW deviations always alert regardless of cooling period.
+# Coach sets cooling period per contact via dropdown.
+# ============================================================
+
+follow_up:
+
+  cooling_period_options:
+    High:   1    # days — urgent contact, short cooling
+    Medium: 2    # days — standard follow-up window
+    Low:    3    # days — light touch, more breathing room
+
+  # These ALWAYS override cooling period and alert immediately
+  cooling_period_exceptions:
+    - "tier1_symptom_present"
+    - "escalate_to_doctor_triggered"
+    - "fbs_above_200"
+    - "third_consecutive_missed_log"
+    - "medication_missed_with_high_glucose"
+
+  # A deviation is considered NEW if it wasn't in the
+  # previous alert's signals list for that patient
+  new_deviation_always_alerts: true
+
+  # What coach sees in Follow-up tab
+  follow_up_display:
+    show_days_since_contact: true
+    show_original_severity: true
+    show_cooling_expires: true
+    allow_override: true      # coach can alert anyway
+    allow_extend: true        # coach can extend cooling period

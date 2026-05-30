@@ -1,0 +1,131 @@
+{
+  "name": "MadhuMitra — Clinical Reasoning Loop",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "madhumitra-analyze",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567801",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "madhumitra-v1"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst patients = input.body?.patients || input.patients || [];\n\nconst patientText = patients.map((p, i) => {\n  const parts = [`${p.name}`];\n  if (p.age && p.gender) parts.push(`${p.age}${p.gender}`);\n  if (p.fbs_mgdl) parts.push(`FBS: ${p.fbs_mgdl} mg/dL`);\n  if (p.exercise_minutes !== undefined && p.exercise_minutes !== '') parts.push(`Exercise: ${p.exercise_minutes} min`);\n  if (p.food_diary) parts.push(`Food: ${p.food_diary}`);\n  if (p.free_text) parts.push(`Notes: ${p.free_text}`);\n  if (!p.fbs_mgdl && !p.free_text) parts.push('NO LOG SUBMITTED');\n  return `Patient ${i+1}: ${parts.join(' — ')}`;\n}).join('\\n\\n');\n\nconst systemPrompt = `You are MadhuMitra, a Clinical Protocol Intelligence Layer for diabetes reversal programs. You help health coaches triage their patient panel efficiently.\n\nActive protocol (DiRECT/ADA baseline):\n- Fasting glucose (FBS) threshold: >130 mg/dL = deviation, >180 mg/dL = high risk\n- Post-meal glucose: >180 mg/dL = deviation\n- Missed log = deviation signal, especially if repeated\n- Minimum exercise: 30 min/day\n- Symptom signals that ALWAYS = High severity regardless of glucose: foamy urine, blurry vision, persistent dizziness, chest pain, sudden weight loss\n\nThree-step reasoning process:\n1. CROSS-SIGNAL DETECTION: Identify threshold breaches AND symptom or distress signals in free-text. Combinations amplify risk: glucose deviation + missed exercise + negative mood = higher severity than any signal alone.\n2. SENTIMENT DRIFT: Assess emotional tone. Words like terrible, dizzy, can't resist, skipping, very bad = negative drift. Words like great, motivated, on track, feeling good = positive.\n3. RISK TIER ASSIGNMENT: Assign High, Medium, or Low severity AND a confidence level of high or low.\n\nCritical rules:\n- NEVER diagnose, prescribe, or give medical advice. Surface signals to the coach only.\n- Every alert reason MUST cite specific data from the log: exact glucose numbers, exact phrases from free-text.\n- High confidence = clear unambiguous signals, goes to auto track. Low confidence = ambiguous or borderline, goes to queue track.\n- Patients with no deviations and positive/neutral tone go in on_track array.\n- Return ONLY valid JSON. No markdown. No preamble. No explanation outside the JSON structure.`;\n\nconst userMessage = `Analyze today's patient logs and return structured JSON:\n\n${patientText}\n\nReturn exactly this JSON structure with no other text:\n{\n  \"alerts\": [\n    {\n      \"name\": \"patient name\",\n      \"severity\": \"High|Medium|Low\",\n      \"confidence\": \"high|low\",\n      \"reason\": \"one-line reason citing specific log data\",\n      \"signals\": [\"signal 1\", \"signal 2\"],\n      \"track\": \"auto|queue\"\n    }\n  ],\n  \"on_track\": [\"name1\", \"name2\"],\n  \"summary\": \"one sentence summary of today's panel\"\n}\n\nSort alerts: High before Medium before Low. High-confidence cases go to track auto. Low-confidence cases go to track queue.`;\n\nconst requestBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 1500,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userMessage }]\n};\n\nreturn [{\n  json: {\n    requestBody: JSON.stringify(requestBody),\n    patientCount: patients.length,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567802",
+      "name": "Prepare Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ $json.requestBody }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567803",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const response = $input.first().json;\nconst content = response.content || [];\nconst text = content.map(c => c.text || '').join('');\nconst clean = text.replace(/```json/g, '').replace(/```/g, '').trim();\n\ntry {\n  const parsed = JSON.parse(clean);\n  parsed.alerts = parsed.alerts || [];\n  parsed.on_track = parsed.on_track || [];\n  parsed.summary = parsed.summary || 'Analysis complete.';\n\n  const highCount = parsed.alerts.filter(a => a.severity === 'High').length;\n  const autoCount = parsed.alerts.filter(a => a.track === 'auto').length;\n  const queueCount = parsed.alerts.filter(a => a.track === 'queue').length;\n\n  return [{\n    json: {\n      success: true,\n      data: parsed,\n      meta: {\n        high_priority: highCount,\n        auto_list: autoCount,\n        review_queue: queueCount,\n        on_track: parsed.on_track.length,\n        processed_at: new Date().toISOString()\n      }\n    }\n  }];\n} catch(e) {\n  return [{\n    json: {\n      success: false,\n      error: 'Failed to parse Claude response: ' + e.message,\n      raw: text\n    }\n  }];\n}"
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567804",
+      "name": "Parse and Structure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567805",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1200, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Prepare Prompt", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Prompt": {
+      "main": [
+        [{ "node": "Claude API", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [{ "node": "Parse and Structure", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse and Structure": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
