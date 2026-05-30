@@ -655,3 +655,8 @@ async def rank_by_reasoning(all_flagged_patients, protocol):
 - After pilot validation (4-6 weeks of coach corrections)
 - Coach correction data tells us if current ranking is wrong
 - If override rate > 20% — LLM ranking is worth building
+
+Known issue: Mobile view alert layout broken
+- Table row buttons not rendering correctly on small screens
+- Need to test on actual phone vs desktop mobile simulation
+- Possible fix: switch mobile view to pure card layout, drop table entirely
