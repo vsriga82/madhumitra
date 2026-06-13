@@ -36,13 +36,36 @@ st.markdown("""
 .brief-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
 .brief-date { font-size: 11px; background: rgba(255,255,255,0.18); padding: 3px 10px; border-radius: 20px; font-weight: 500; }
 
+/* Nav pills — anchor links, all browser states overridden */
 .summary-bar { display: flex; gap: 8px; padding-bottom: 16px; }
-.summary-pill { flex: 1; border-radius: 8px; padding: 9px 10px; text-align: center; color: white; }
+.summary-pill,
+.summary-pill:link,
+.summary-pill:visited,
+.summary-pill:hover,
+.summary-pill:active,
+.summary-pill:focus {
+  flex: 1; border-radius: 8px; padding: 9px 10px; text-align: center;
+  color: white !important; text-decoration: none !important;
+  display: block; transition: opacity 0.15s; outline: none;
+}
+.summary-pill:hover { opacity: 0.82; }
 .summary-pill .num { font-size: 22px; font-weight: 700; line-height: 1; }
 .summary-pill .lbl { font-size: 10px; opacity: 0.85; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
 .pill-urgent  { background: rgba(239,68,68,0.35); }
 .pill-watch   { background: rgba(245,158,11,0.35); }
 .pill-routine { background: rgba(16,185,129,0.35); }
+.pill-slip    { background: rgba(249,115,22,0.35); }
+
+/* ↑ top anchor in section headers */
+.top-link,
+.top-link:link,
+.top-link:visited,
+.top-link:hover,
+.top-link:active {
+  font-size: 10px; color: #9CA3AF !important; text-decoration: none !important;
+  letter-spacing: 0.03em; cursor: pointer;
+}
+.top-link:hover { color: #0D9488 !important; }
 
 /* ── Section labels ───────────────────────────── */
 .section-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 8px; }
@@ -596,12 +619,13 @@ def render_patient_card(patient, idx, section):
     css      = sev_css(severity)
     signals  = patient.get("signals", []) or [d.replace("_", " ") for d in patient.get("deviations", [])]
     reasoning = patient.get("reasoning", "") or patient.get("rules_reasoning", "")
-    h         = patient.get("program_history", {})
+    raw       = st.session_state.get("raw_patients", {}).get(name, {})
+    h         = raw.get("program_history", patient.get("program_history", {}))
     week      = h.get("week_number", "?")
     days      = get_contact_days(name)
     note_key  = f"{section}_{idx}"
 
-    reason_short = truncate_words(reasoning, 160)
+    reason_short = reasoning or ""
     contact_tag  = f'<span class="meta-tag">· Last contact: {days}d ago</span>' if days is not None else ""
 
     st.markdown(f"""
@@ -677,13 +701,14 @@ def render_slippage_card(patient, idx):
     name      = patient.get("name", "")
     severity  = patient.get("severity", "")
     reasoning = patient.get("reasoning", "")
-    h         = patient.get("program_history", {})
+    raw       = st.session_state.get("raw_patients", {}).get(name, {})
+    h         = raw.get("program_history", patient.get("program_history", {}))
     week      = h.get("week_number", "?")
     days      = get_contact_days(name)
     signals   = patient.get("signals", [])
     note_key  = f"slip_{idx}"
 
-    reason_short = truncate_words(reasoning, 160)
+    reason_short = reasoning or ""
     contact_tag  = f'<span class="meta-tag">· Last contact: {days}d ago</span>' if days is not None else ""
 
     st.markdown(f"""
@@ -1157,7 +1182,7 @@ def render_slippage_page(r):
 </div>""", unsafe_allow_html=True)
             continue
 
-        reason_short = truncate_words(reasoning or "No engagement signal captured", 180)
+        reason_short = reasoning or "No engagement signal captured"
         meta_parts   = [x for x in [f"Age {age}" if age else "", gender, f"Week {week}"] if x]
         risk_chips   = "".join(f'<span class="risk-chip orange">{shorten_signal(s)}</span>' for s in signals[:4]) \
                        or '<span class="risk-chip yellow">Low engagement signals</span>'
@@ -1209,36 +1234,47 @@ def render_morning_brief(r):
     today     = date.today()
     today_str = f"{today.day} {today.strftime('%b %Y')}"
 
+    # ── Header with anchor-link nav pills ────────────────────
+    pills = []
+    if urgent:
+        pills.append(f'<a href="#section-urgent" class="summary-pill pill-urgent"><div class="num">{len(urgent)}</div><div class="lbl">Urgent</div></a>')
+    if watch:
+        pills.append(f'<a href="#section-watch" class="summary-pill pill-watch"><div class="num">{len(watch)}</div><div class="lbl">Watch</div></a>')
+    if slippage:
+        pills.append(f'<a href="#section-slippage" class="summary-pill pill-slip"><div class="num">{len(slippage)}</div><div class="lbl">Slippage</div></a>')
+    if routine:
+        pills.append(f'<a href="#section-routine" class="summary-pill pill-routine"><div class="num">{len(routine)}</div><div class="lbl">Routine</div></a>')
+    if on_track:
+        pills.append(f'<a href="#section-ontrack" class="summary-pill pill-routine" style="background:rgba(16,185,129,0.25)"><div class="num">{len(on_track)}</div><div class="lbl">On Track</div></a>')
+
     st.markdown(f"""
+<div id="brief-top"></div>
 <div class="brief-header">
   <div class="brief-greeting">Coach Dashboard</div>
   <div class="brief-title-row">
     <span class="brief-title">Morning Brief</span>
     <span class="brief-date">{today_str}</span>
   </div>
-  <div class="summary-bar">
-    <div class="summary-pill pill-urgent"><div class="num">{len(urgent)}</div><div class="lbl">Urgent</div></div>
-    <div class="summary-pill pill-watch"><div class="num">{len(watch)}</div><div class="lbl">Watch</div></div>
-    <div class="summary-pill pill-routine"><div class="num">{len(on_track)}</div><div class="lbl">On Track</div></div>
-  </div>
+  <div class="summary-bar">{"".join(pills)}</div>
 </div>""", unsafe_allow_html=True)
 
     if urgent:
-        st.markdown('<div class="section-header"><span class="section-label">🔴 Urgent — Act Today</span></div>', unsafe_allow_html=True)
+        st.markdown('<div id="section-urgent" class="section-header"><span class="section-label">🔴 Urgent — Act Today</span><a href="#brief-top" class="top-link">↑ top</a></div>', unsafe_allow_html=True)
         for i, p in enumerate(urgent):
             render_patient_card(p, i, "urgent")
 
     if watch:
-        st.markdown('<div class="section-header"><span class="section-label">🟡 Watch — Within 24h</span></div>', unsafe_allow_html=True)
+        st.markdown('<div id="section-watch" class="section-header"><span class="section-label">🟡 Watch — Within 24h</span><a href="#brief-top" class="top-link">↑ top</a></div>', unsafe_allow_html=True)
         for i, p in enumerate(watch):
             render_patient_card(p, i, "watch")
 
     if slippage:
         count = len(slippage)
         st.markdown(f"""
-<div class="slippage-banner">
+<div id="section-slippage" class="slippage-banner">
   <span style="font-size:18px">⚠️</span>
   <span><strong>{count} patient{"s" if count>1 else ""}</strong> showing engagement drop — warm check-in recommended</span>
+  <a href="#brief-top" class="top-link" style="margin-left:auto">↑ top</a>
 </div>""", unsafe_allow_html=True)
         if st.button("→ Open Slippage Alerts", key="brief_slip_nav", use_container_width=False):
             st.session_state.view = "slippage"; st.rerun()
@@ -1246,12 +1282,12 @@ def render_morning_brief(r):
             render_slippage_card(p, i)
 
     if routine:
-        st.markdown('<div class="section-header"><span class="section-label">🟢 Routine — Next Check-in</span></div>', unsafe_allow_html=True)
+        st.markdown('<div id="section-routine" class="section-header"><span class="section-label">🟢 Routine — Next Check-in</span><a href="#brief-top" class="top-link">↑ top</a></div>', unsafe_allow_html=True)
         for i, p in enumerate(routine):
             render_patient_card(p, i, "routine")
 
     if on_track:
-        st.markdown('<div class="section-header"><span class="section-label">✅ On Track</span></div>', unsafe_allow_html=True)
+        st.markdown('<div id="section-ontrack" class="section-header"><span class="section-label">✅ On Track</span><a href="#brief-top" class="top-link">↑ top</a></div>', unsafe_allow_html=True)
         for p in on_track:
             n   = p.get("name","")
             fbs = p.get("structured",{}).get("fbs_mgdl","")
