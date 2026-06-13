@@ -266,7 +266,7 @@ st.markdown("""
 
 /* ── Slippage detail page ─────────────────────── */
 .slippage-page-header {
-  background: linear-gradient(135deg, #92400E 0%, #B45309 100%);
+  background: linear-gradient(135deg, #EA580C 0%, #FB923C 100%);
   border-radius: 12px; padding: 18px 20px; color: white; margin-bottom: 1rem;
 }
 .slippage-page-header h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
@@ -570,9 +570,15 @@ def _save_note(name, action_type, note_text, tags):
         "created_at": datetime.now().strftime("%b %d, %Y · %I:%M %p")
     })
 
+SAFE_MODIFIERS = ["stable","well controlled","no concern","on target","improvement",
+                  "improving","within range","good","normal","not concern","controlled"]
+
 def _categorize_signal(sig):
     sl = sig.lower()
-    if any(k in sl for k in ["fbs","glucose","bp","blood pressure","medication","chest","blurry","foamy","escalat","vision"]):
+    # If a clinical keyword is present but the signal is qualified as safe, treat as engagement
+    has_clinical_kw = any(k in sl for k in ["fbs","glucose","bp","blood pressure","medication","chest","blurry","foamy","escalat","vision"])
+    is_safe = any(m in sl for m in SAFE_MODIFIERS)
+    if has_clinical_kw and not is_safe:
         return "clinical", "#FEF2F2", "#FECACA", "#DC2626", "🔴"
     elif any(k in sl for k in ["exercise","sleep","stress","carb","protein","food","diet"]):
         return "behavioral", "#FFFBEB", "#FDE68A", "#D97706", "🟡"
