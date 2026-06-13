@@ -79,6 +79,7 @@ st.markdown("""
 .patient-card.urgent  { border-left: 4px solid #EF4444; }
 .patient-card.watch   { border-left: 4px solid #F59E0B; }
 .patient-card.routine { border-left: 4px solid #10B981; }
+.patient-card.ontrack { border-left: 4px solid #10B981; }
 .patient-card.queue   { border-left: 4px solid #6366F1; }
 .patient-card.slippage{ border-left: 4px solid #F97316; }
 
@@ -133,6 +134,8 @@ st.markdown("""
 .element-container:has(.patient-card.routine) + div [data-testid="stHorizontalBlock"] { border-left: 4px solid #10B981 !important; }
 .element-container:has(.patient-card.slippage) + .element-container [data-testid="stHorizontalBlock"],
 .element-container:has(.patient-card.slippage) + div [data-testid="stHorizontalBlock"] { border-left: 4px solid #F97316 !important; }
+.element-container:has(.patient-card.ontrack) + .element-container [data-testid="stHorizontalBlock"],
+.element-container:has(.patient-card.ontrack) + div [data-testid="stHorizontalBlock"] { border-left: 4px solid #10B981 !important; }
 .element-container:has(.patient-card.queue) + .element-container [data-testid="stHorizontalBlock"],
 .element-container:has(.patient-card.queue) + div [data-testid="stHorizontalBlock"] { border-left: 4px solid #6366F1 !important; }
 
@@ -1294,15 +1297,8 @@ def render_morning_brief(r):
 
     if on_track:
         st.markdown('<div id="section-ontrack" class="section-header"><span class="section-label">✅ On Track</span><a href="#brief-top" class="top-link">↑ top</a></div>', unsafe_allow_html=True)
-        for p in on_track:
-            n   = p.get("name","")
-            fbs = p.get("structured",{}).get("fbs_mgdl","")
-            fbs_txt = f"FBS {fbs} mg/dL · " if fbs else ""
-            st.markdown(f"""
-<div class="on-track-row">
-  <span style="font-size:16px">✅</span>
-  <div><div class="on-track-name">{n}</div><div class="on-track-sub">{fbs_txt}All logs complete</div></div>
-</div>""", unsafe_allow_html=True)
+        for i, p in enumerate(on_track):
+            render_patient_card(p, i, "ontrack")
 
     if queue:
         st.markdown(f'<div class="section-header"><span class="section-label">🔵 Review Queue ({len(queue)})</span></div>', unsafe_allow_html=True)
