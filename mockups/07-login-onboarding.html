@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MadhuMitra — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-700: #0F766E;
+    --teal-600: #0D9488;
+    --teal-500: #14B8A6;
+    --teal-100: #CCFBF1;
+    --teal-50:  #F0FDFA;
+    --gray-900: #111827;
+    --gray-700: #374151;
+    --gray-600: #4B5563;
+    --gray-500: #6B7280;
+    --gray-400: #9CA3AF;
+    --gray-300: #D1D5DB;
+    --gray-200: #E5E7EB;
+    --gray-100: #F3F4F6;
+    --gray-50:  #F9FAFB;
+    --white:    #FFFFFF;
+    --urgent:   #EF4444;
+    --radius:   10px;
+    --shadow:   0 2px 8px rgba(0,0,0,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(160deg, #0F766E 0%, #0D9488 40%, #14B8A6 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0 0 40px;
+  }
+
+  .phone-frame {
+    width: 390px;
+    min-height: 100vh;
+    background: var(--white);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Branded header */
+  .brand-header {
+    background: linear-gradient(160deg, #0F766E 0%, #0D9488 60%, #14B8A6 100%);
+    padding: 60px 32px 40px;
+    text-align: center;
+    color: white;
+    flex-shrink: 0;
+  }
+  .brand-logo {
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px;
+    margin: 0 auto 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .brand-name {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .brand-name span { opacity: 0.7; font-weight: 500; font-size: 14px; }
+  .brand-tagline {
+    font-size: 13px;
+    opacity: 0.8;
+    line-height: 1.5;
+    max-width: 240px;
+    margin: 0 auto;
+  }
+  .brand-trust-badges {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .trust-badge {
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.9;
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  /* Login form */
+  .login-form {
+    flex: 1;
+    padding: 28px 24px;
+    background: var(--white);
+    border-radius: 20px 20px 0 0;
+    margin-top: -20px;
+    position: relative;
+    z-index: 1;
+  }
+  .form-title {
+    font-size: 18px; font-weight: 700;
+    color: var(--gray-900); margin-bottom: 4px;
+  }
+  .form-sub {
+    font-size: 12px; color: var(--gray-500);
+    margin-bottom: 24px;
+  }
+
+  /* Role selector */
+  .role-selector { display: flex; gap: 8px; margin-bottom: 20px; }
+  .role-btn {
+    flex: 1; padding: 9px 6px;
+    border-radius: 8px;
+    border: 1.5px solid var(--gray-200);
+    background: var(--white);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .role-btn .ri  { font-size: 16px; margin-bottom: 3px; display: block; }
+  .role-btn .rl  { font-size: 11px; font-weight: 600; color: var(--gray-600); }
+  .role-btn.active {
+    border-color: var(--teal-500);
+    background: var(--teal-50);
+  }
+  .role-btn.active .rl { color: var(--teal-600); }
+
+  /* Input fields */
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--gray-700); margin-bottom: 6px;
+  }
+  .input-wrap { position: relative; }
+  input[type=email], input[type=password] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: var(--gray-900);
+    background: var(--gray-50);
+    outline: none;
+    transition: all 0.15s;
+  }
+  input[type=email]:focus, input[type=password]:focus {
+    border-color: var(--teal-500);
+    background: var(--white);
+    box-shadow: 0 0 0 3px rgba(20,184,166,0.12);
+  }
+  .input-icon {
+    position: absolute; right: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-400); font-size: 16px; cursor: pointer;
+  }
+  .forgot-link {
+    float: right; font-size: 11px; color: var(--teal-600);
+    font-weight: 600; text-decoration: none; margin-top: 4px;
+  }
+
+  /* OTP toggle */
+  .otp-toggle {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 20px;
+  }
+  .toggle-track {
+    width: 36px; height: 20px;
+    border-radius: 10px;
+    background: var(--teal-500);
+    position: relative; cursor: pointer;
+  }
+  .toggle-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: white; position: absolute;
+    right: 2px; top: 2px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .otp-label { font-size: 12px; color: var(--gray-600); font-weight: 500; }
+  .otp-badge { font-size: 10px; color: var(--teal-600); background: var(--teal-100); padding: 1px 6px; border-radius: 20px; font-weight: 600; }
+
+  /* Submit button */
+  .btn-login {
+    width: 100%; padding: 14px;
+    border-radius: 10px;
+    background: var(--teal-600);
+    color: white; font-size: 15px; font-weight: 700;
+    border: none; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(13,148,136,0.35);
+    transition: all 0.15s;
+    margin-bottom: 14px;
+  }
+  .btn-login:hover { background: var(--teal-700); }
+
+  /* OR divider */
+  .or-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 14px;
+  }
+  .or-line { flex: 1; height: 1px; background: var(--gray-200); }
+  .or-text { font-size: 11px; color: var(--gray-400); font-weight: 500; }
+
+  /* SSO button */
+  .btn-sso {
+    width: 100%; padding: 12px;
+    border-radius: 10px;
+    background: var(--white);
+    border: 1.5px solid var(--gray-200);
+    font-size: 13px; font-weight: 600; color: var(--gray-700);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-bottom: 20px;
+  }
+  .btn-sso:hover { background: var(--gray-50); }
+  .sso-icon { font-size: 16px; }
+
+  /* Security note */
+  .security-note {
+    text-align: center;
+    font-size: 11px; color: var(--gray-400);
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+
+  /* Footer */
+  .login-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--gray-100);
+    text-align: center;
+    font-size: 11px; color: var(--gray-400);
+  }
+  .login-footer a { color: var(--teal-600); font-weight: 600; text-decoration: none; }
+
+  /* Onboarding step indicator (below login, shows after auth) */
+  .onboard-strip {
+    background: var(--teal-50);
+    border: 1px solid var(--teal-100);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .ob-icon { font-size: 20px; flex-shrink: 0; }
+  .ob-title { font-size: 12px; font-weight: 700; color: var(--teal-700); margin-bottom: 3px; }
+  .ob-text  { font-size: 11px; color: var(--teal-600); line-height: 1.4; }
+  .ob-steps {
+    display: flex; gap: 4px; margin-top: 10px;
+  }
+  .ob-step {
+    height: 4px; border-radius: 2px; background: var(--teal-100); flex: 1;
+  }
+  .ob-step.done { background: var(--teal-500); }
+
+  .watermark { text-align: center; padding: 8px; font-size: 10px; color: var(--gray-400); }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+
+  <!-- Branded header -->
+  <div class="brand-header">
+    <div class="brand-logo">&#129658;</div>
+    <div class="brand-name">MadhuMitra<br><span>Clinical Protocol Intelligence</span></div>
+    <div class="brand-tagline">AI-powered daily brief for diabetes reversal coaches. Every morning, know who needs you most.</div>
+    <div class="brand-trust-badges">
+      <span class="trust-badge">&#128274; HIPAA-aligned</span>
+      <span class="trust-badge">&#127470;&#127475; India-native</span>
+      <span class="trust-badge">&#9989; DiRECT Protocol</span>
+    </div>
+  </div>
+
+  <!-- Login form -->
+  <div class="login-form">
+    <div class="form-title">Welcome back</div>
+    <div class="form-sub">Sign in to your MadhuMitra coaching account</div>
+
+    <!-- Role selector -->
+    <div class="role-selector">
+      <div class="role-btn active">
+        <span class="ri">&#128104;&#8205;&#9877;&#65039;</span>
+        <span class="rl">Health Coach</span>
+      </div>
+      <div class="role-btn">
+        <span class="ri">&#128200;</span>
+        <span class="rl">Operator</span>
+      </div>
+      <div class="role-btn">
+        <span class="ri">&#129657;</span>
+        <span class="rl">Doctor</span>
+      </div>
+    </div>
+
+    <!-- Email -->
+    <div class="field">
+      <label>Work Email</label>
+      <div class="input-wrap">
+        <input type="email" value="priya.chandran@reversehealth.in" placeholder="your@clinic.com">
+        <span class="input-icon">&#9993;</span>
+      </div>
+    </div>
+
+    <!-- Password -->
+    <div class="field">
+      <label>
+        Password
+        <a href="#" class="forgot-link">Forgot password?</a>
+      </label>
+      <div class="input-wrap">
+        <input type="password" value="••••••••••">
+        <span class="input-icon">&#128065;</span>
+      </div>
+    </div>
+
+    <!-- OTP toggle -->
+    <div class="otp-toggle">
+      <div class="toggle-track">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span class="otp-label">Sign in with OTP instead</span>
+      <span class="otp-badge">Recommended</span>
+    </div>
+
+    <!-- Onboarding first-time hint -->
+    <div class="onboard-strip">
+      <span class="ob-icon">&#127381;</span>
+      <div>
+        <div class="ob-title">First time? Get your Brief in &lt;30 min</div>
+        <div class="ob-text">After signing in: link your patient data source, set your protocol, and your first Morning Brief will be ready by 7:30 AM tomorrow.</div>
+        <div class="ob-steps">
+          <div class="ob-step done"></div>
+          <div class="ob-step done"></div>
+          <div class="ob-step"></div>
+          <div class="ob-step"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-login" onclick="window.location.href='01-morning-brief.html'">
+      Sign In to MadhuMitra &rarr;
+    </button>
+
+    <div class="or-row">
+      <div class="or-line"></div>
+      <span class="or-text">or continue with</span>
+      <div class="or-line"></div>
+    </div>
+
+    <button class="btn-sso">
+      <span class="sso-icon">&#127970;</span>
+      Sign in with Google Workspace
+    </button>
+
+    <div class="security-note">
+      <span>&#128274;</span>
+      <span>Secured by TLS 1.3 · Data stays in India (AWS ap-south-1)</span>
+    </div>
+  </div>
+
+  <div class="login-footer">
+    Don't have an account? <a href="#">Contact your program operator</a><br>
+    <span style="font-size:10px;margin-top:4px;display:block;">By signing in you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a></span>
+  </div>
+
+  <div class="watermark">MadhuMitra · Screen 7 of 7 · Login / Onboarding · v1.0 · <a href="index.html" style="color:var(--teal-600);">All Screens</a></div>
+
+</div>
+</body>
+</html>

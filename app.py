@@ -1,6 +1,7 @@
+import re
 import streamlit as st
 import json
-from datetime import date
+from datetime import date, datetime
 from parser import parse_all, load_thresholds, load_patients
 from prompt import load_protocol_files
 from reasoning import run_reasoning
@@ -14,84 +15,291 @@ from feedback import (
 st.set_page_config(
     page_title="MadhuMitra",
     page_icon="🩺",
-    layout="wide"
+    layout="centered"
 )
 
+# ── CSS ───────────────────────────────────────────────────────
 st.markdown("""
 <style>
-.main { background-color: #F8F7F4; }
-.block-container { padding-top: 1rem; padding-bottom: 2rem; }
+.stApp { background-color: #F0FDFA !important; }
+[data-testid="stAppViewContainer"] { background-color: #F0FDFA !important; }
+[data-testid="stHeader"] { background-color: transparent !important; }
+.block-container { padding-top: 1rem !important; padding-bottom: 3rem; }
 
-/* Table layout */
-.alert-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.alert-table th {
-    font-size: 10px; font-weight: 500; text-transform: uppercase;
-    letter-spacing: 0.05em; color: #6B6B65;
-    padding: 8px 10px; text-align: left;
-    border-bottom: 1px solid #E5E3DC;
-    background: #F8F7F4;
+/* ── Brief header ─────────────────────────────── */
+.brief-header {
+  background: #0D9488; border-radius: 12px;
+  padding: 18px 20px 0; color: white; margin-bottom: 1.2rem;
 }
-.alert-table td {
-    padding: 9px 10px;
-    border-bottom: 0.5px solid #E5E3DC;
-    vertical-align: middle;
-    color: #1A1A18;
+.brief-greeting { font-size: 11px; opacity: 0.8; margin-bottom: 2px; font-weight: 500; }
+.brief-title-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+.brief-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+.brief-date { font-size: 11px; background: rgba(255,255,255,0.18); padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+
+.summary-bar { display: flex; gap: 8px; padding-bottom: 16px; }
+.summary-pill { flex: 1; border-radius: 8px; padding: 9px 10px; text-align: center; color: white; }
+.summary-pill .num { font-size: 22px; font-weight: 700; line-height: 1; }
+.summary-pill .lbl { font-size: 10px; opacity: 0.85; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+.pill-urgent  { background: rgba(239,68,68,0.35); }
+.pill-watch   { background: rgba(245,158,11,0.35); }
+.pill-routine { background: rgba(16,185,129,0.35); }
+
+/* ── Section labels ───────────────────────────── */
+.section-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 8px; }
+.section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6B7280; }
+
+/* ── Patient cards ────────────────────────────── */
+.patient-card {
+  background: white; border-radius: 10px 10px 0 0;
+  border: 1px solid #E5E7EB; border-bottom: none; overflow: hidden;
 }
-.alert-table tr:hover td { background: #F1EFE8; cursor: pointer; }
-.alert-table tr.selected td { background: #E1F5EE; }
-.alert-table tr:last-child td { border-bottom: none; }
+.patient-card.urgent  { border-left: 4px solid #EF4444; }
+.patient-card.watch   { border-left: 4px solid #F59E0B; }
+.patient-card.routine { border-left: 4px solid #10B981; }
+.patient-card.queue   { border-left: 4px solid #6366F1; }
+.patient-card.slippage{ border-left: 4px solid #F97316; }
 
-/* Severity pills */
-.pill { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
-.pill-h { background: #FCEBEB; color: #A32D2D; }
-.pill-m { background: #FAEEDA; color: #633806; }
-.pill-l { background: #EAF3DE; color: #27500A; }
-.pill-q { background: #EFF6FF; color: #1E40AF; }
+.card-top { padding: 12px 14px 8px; }
+.card-row1 { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+.patient-name { font-size: 14px; font-weight: 600; color: #111827; }
 
-/* Severity dots */
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
-.dot-h { background: #E24B4A; }
-.dot-m { background: #EF9F27; }
-.dot-l { background: #639922; }
-.dot-q { background: #2563EB; }
-.dot-f { background: #7C3AED; }
-
-/* Signal chips */
-.chip { display: inline-block; background: #F1EFE8; color: #5F5E5A; padding: 1px 7px; border-radius: 10px; font-size: 10px; margin: 1px 2px 1px 0; white-space: nowrap; }
-.chip-more { background: #E6F1FB; color: #185FA5; }
-
-/* Detail panel */
-.detail-panel {
-    background: white; border-radius: 10px;
-    border: 0.5px solid #E5E3DC;
-    padding: 16px; height: 100%;
+/* Fix: ensure card reason text wraps fully */
+.flag-reason {
+  font-size: 12px; color: #374151; line-height: 1.5;
+  margin-bottom: 8px; white-space: normal;
+  word-wrap: break-word; overflow-wrap: break-word;
 }
-.detail-name { font-size: 15px; font-weight: 500; color: #1A1A18; margin-bottom: 2px; }
-.detail-sub { font-size: 12px; color: #6B6B65; margin-bottom: 12px; }
-.detail-section { margin-bottom: 12px; }
-.detail-section-label {
-    font-size: 10px; font-weight: 500; text-transform: uppercase;
-    letter-spacing: 0.05em; color: #9B9B94; margin-bottom: 5px;
+.meta-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.meta-tag { font-size: 10px; color: #9CA3AF; }
+
+/* ── Severity badges ──────────────────────────── */
+.severity-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 9px;
+  border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;
 }
-.detail-field { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 0.5px solid #F1EFE8; }
-.detail-field:last-child { border: none; }
-.detail-key { color: #6B6B65; }
-.detail-val { color: #1A1A18; font-weight: 500; text-align: right; }
-.escalate-bar { background: #FEF2F2; border: 0.5px solid #FECACA; border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #991B1B; margin-bottom: 10px; }
-.reasoning-text { font-size: 12px; color: #6B6B65; line-height: 1.6; }
+.badge-urgent   { background: #FEF2F2; color: #EF4444;  border: 1px solid #FECACA; }
+.badge-watch    { background: #FFFBEB; color: #B45309;  border: 1px solid #FDE68A; }
+.badge-routine  { background: #ECFDF5; color: #065F46;  border: 1px solid #A7F3D0; }
+.badge-queue    { background: #EEF2FF; color: #4338CA;  border: 1px solid #C7D2FE; }
+.badge-slippage { background: #FFF7ED; color: #C2410C;  border: 1px solid #FED7AA; }
+.badge-ontrack  { background: #ECFDF5; color: #065F46;  border: 1px solid #A7F3D0; }
 
-/* Action buttons */
-.action-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
-.btn-sm { font-size: 12px; background: white; border: 0.5px solid #E5E3DC; border-radius: 5px; padding: 3px 8px; cursor: pointer; }
-.btn-contact { font-size: 11px; background: #E1F5EE; color: #085041; border: 0.5px solid #5DCAA5; border-radius: 5px; padding: 3px 9px; cursor: pointer; white-space: nowrap; }
+/* ── Signal chips (card) ──────────────────────── */
+.signal-chips { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 14px 10px; }
+.chip     { font-size: 10px; background: #F3F4F6; color: #6B7280; padding: 2px 7px; border-radius: 20px; font-weight: 500; }
+.chip-red { background: #FEF2F2; color: #EF4444; }
+.chip-amb { background: #FFFBEB; color: #92400E; }
 
-/* Empty states */
-.empty-state { text-align: center; padding: 40px 20px; color: #9B9B94; font-size: 13px; }
+/* ── Card action row — connected to card via :has() ── */
+.element-container:has(.patient-card) + .element-container [data-testid="stHorizontalBlock"],
+.element-container:has(.patient-card) + div [data-testid="stHorizontalBlock"] {
+  background: white !important;
+  border-right: 1px solid #E5E7EB !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  border-top: 1px solid #F3F4F6 !important;
+  border-radius: 0 0 10px 10px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+  margin-top: -2px !important; margin-bottom: 0 !important;
+  overflow: hidden; padding: 0 !important;
+}
+.element-container:has(.patient-card.urgent) + .element-container [data-testid="stHorizontalBlock"],
+.element-container:has(.patient-card.urgent) + div [data-testid="stHorizontalBlock"] { border-left: 4px solid #EF4444 !important; }
+.element-container:has(.patient-card.watch) + .element-container [data-testid="stHorizontalBlock"],
+.element-container:has(.patient-card.watch) + div [data-testid="stHorizontalBlock"] { border-left: 4px solid #F59E0B !important; }
+.element-container:has(.patient-card.routine) + .element-container [data-testid="stHorizontalBlock"],
+.element-container:has(.patient-card.routine) + div [data-testid="stHorizontalBlock"] { border-left: 4px solid #10B981 !important; }
+.element-container:has(.patient-card.slippage) + .element-container [data-testid="stHorizontalBlock"],
+.element-container:has(.patient-card.slippage) + div [data-testid="stHorizontalBlock"] { border-left: 4px solid #F97316 !important; }
+.element-container:has(.patient-card.queue) + .element-container [data-testid="stHorizontalBlock"],
+.element-container:has(.patient-card.queue) + div [data-testid="stHorizontalBlock"] { border-left: 4px solid #6366F1 !important; }
+
+/* Action buttons — text-only */
+.element-container:has(.patient-card) + .element-container button,
+.element-container:has(.patient-card) + div button {
+  background: transparent !important; border: none !important;
+  border-radius: 0 !important; box-shadow: none !important;
+  min-height: 36px !important; font-size: 12px !important;
+  font-weight: 500 !important; color: #6B7280 !important;
+  padding: 6px 2px !important; width: 100% !important;
+}
+.element-container:has(.patient-card) + .element-container button[kind="primary"],
+.element-container:has(.patient-card) + div button[kind="primary"] {
+  color: #0D9488 !important; font-weight: 600 !important; background: transparent !important;
+}
+.element-container:has(.patient-card) + .element-container [data-testid="column"]:not(:last-child),
+.element-container:has(.patient-card) + div [data-testid="column"]:not(:last-child) {
+  border-right: 1px solid #F3F4F6;
+}
+
+/* Feedback reason row */
+.feedback-row {
+  background: #FFFBEB; border: 1px solid #FDE68A;
+  border-radius: 0 0 10px 10px; padding: 6px 10px;
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-top: 0; margin-bottom: 12px;
+}
+.feedback-row-label { font-size: 10px; color: #92400E; font-weight: 600; width: 100%; margin-bottom: 2px; }
+
+/* ── On track / slippage rows ─────────────────── */
+.on-track-row {
+  background: #ECFDF5; border: 1px solid #A7F3D0;
+  border-radius: 8px; padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+}
+.on-track-name { font-size: 13px; font-weight: 600; color: #065F46; }
+.on-track-sub  { font-size: 11px; color: #047857; margin-top: 2px; }
+
+.slippage-banner {
+  background: #FFF7ED; border: 1px solid #FED7AA;
+  border-radius: 8px; padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px; font-size: 12px; color: #92400E;
+}
+
+/* Reviewed row */
+.reviewed-row {
+  background: #F9FAFB; border: 1px solid #E5E7EB;
+  border-radius: 8px; padding: 8px 14px;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  font-size: 12px; color: #6B7280;
+}
+
+/* ── Profile page ─────────────────────────────── */
+.profile-header {
+  background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+  border-radius: 12px; padding: 16px 16px 18px; color: white; margin-bottom: 0.8rem;
+}
+.profile-hero {
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(255,255,255,0.12); border-radius: 10px; padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.avatar {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: rgba(255,255,255,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; color: white; flex-shrink: 0;
+}
+.hero-name { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+.hero-meta { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+.hero-comorbid { font-size: 10px; opacity: 0.75; margin-top: 3px; font-style: italic; }
+
+/* Profile stat pills */
+.profile-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.stat-pill {
+  background: rgba(255,255,255,0.15); border-radius: 8px;
+  padding: 8px 12px; text-align: center; flex: 1; min-width: 80px;
+}
+.stat-val { font-size: 16px; font-weight: 700; line-height: 1; }
+.stat-lbl { font-size: 10px; opacity: 0.8; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.03em; }
+.stat-sub { font-size: 10px; opacity: 0.65; }
+
+/* Signal rows in profile */
+.signal-section { margin: 12px 0; }
+.signal-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: #6B7280; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.profile-signal {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 12px; border-radius: 8px; margin-bottom: 6px;
+  border: 1px solid;
+}
+.profile-signal.clinical { background: #FEF2F2; border-color: #FECACA; }
+.profile-signal.behavioral { background: #FFFBEB; border-color: #FDE68A; }
+.profile-signal.engagement { background: #FFF7ED; border-color: #FED7AA; }
+.signal-dot { font-size: 10px; margin-top: 2px; flex-shrink: 0; }
+.signal-main { font-size: 13px; font-weight: 600; color: #111827; }
+.signal-detail { font-size: 11px; color: #6B7280; margin-top: 2px; line-height: 1.4; }
+.signal-cat {
+  margin-left: auto; font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  opacity: 0.6; flex-shrink: 0; padding-top: 3px;
+}
+
+/* AI reasoning block */
+.reasoning-block {
+  background: #F0FDFA; border-left: 4px solid #0D9488;
+  border-radius: 0 10px 10px 0; padding: 12px 14px; margin: 12px 0;
+}
+.reasoning-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: #0D9488; margin-bottom: 6px;
+}
+.reasoning-text { font-size: 12px; color: #374151; line-height: 1.65; }
+
+/* Today's data rows */
+.data-row {
+  display: flex; align-items: baseline; padding: 5px 0;
+  border-bottom: 1px solid #F9FAFB;
+}
+.data-label { font-size: 11px; color: #9CA3AF; width: 130px; flex-shrink: 0; }
+.data-value { font-size: 13px; font-weight: 600; color: #111827; }
+.data-sub   { font-size: 11px; color: #9CA3AF; margin-left: 6px; }
+.data-good  { color: #059669; }
+.data-warn  { color: #D97706; }
+.data-bad   { color: #DC2626; }
+
+/* ── Slippage detail page ─────────────────────── */
+.slippage-page-header {
+  background: linear-gradient(135deg, #92400E 0%, #B45309 100%);
+  border-radius: 12px; padding: 18px 20px; color: white; margin-bottom: 1rem;
+}
+.slippage-page-header h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.slippage-explainer {
+  background: rgba(255,255,255,0.15); border-radius: 8px;
+  padding: 10px 12px; font-size: 12px; line-height: 1.5;
+}
+.slip-detail-card {
+  background: white; border-radius: 10px;
+  border: 1px solid #FED7AA; margin-bottom: 12px; overflow: hidden;
+}
+.slip-accent { height: 4px; background: linear-gradient(90deg,#F97316,#FCD34D); }
+.slip-body { padding: 12px 14px; }
+.slip-name { font-size: 14px; font-weight: 700; color: #111827; }
+.slip-meta { font-size: 11px; color: #9CA3AF; margin: 3px 0 8px; }
+.slip-reason { font-size: 12px; color: #374151; line-height: 1.5; margin-bottom: 10px; }
+.risk-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.risk-chip { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; border: 1px solid; }
+.risk-chip.orange { background: #FFEDD5; color: #EA580C; border-color: #FED7AA; }
+.risk-chip.yellow { background: #FEF9C3; color: #713F12; border-color: #FEF08A; }
+
+/* ── Coach Notes page ─────────────────────────── */
+.notes-header {
+  background: #0D9488; border-radius: 12px;
+  padding: 18px 20px; color: white; margin-bottom: 1rem;
+}
+.notes-header h2 { font-size: 18px; font-weight: 700; }
+.patient-strip-notes {
+  background: rgba(255,255,255,0.15); border-radius: 8px;
+  padding: 10px 12px; display: flex; align-items: center; gap: 10px; margin-top: 10px;
+}
+.avatar-sm {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: white;
+}
+.ps-name { font-size: 14px; font-weight: 700; }
+.ps-meta { font-size: 11px; opacity: 0.8; }
+
+/* Note history */
+.note-item { padding: 12px 0; border-bottom: 1px solid #F3F4F6; }
+.note-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-right: 6px; }
+.tag-called    { background: #EFF6FF; color: #1E40AF; }
+.tag-messaged  { background: #F5F3FF; color: #5B21B6; }
+.tag-video     { background: #ECFDF5; color: #065F46; }
+.tag-escalated { background: #FEF2F2; color: #EF4444; }
+.note-date { font-size: 11px; color: #9CA3AF; }
+.note-text { font-size: 12px; color: #374151; line-height: 1.55; margin-top: 4px; }
+.note-signals  { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.ns-chip { font-size: 10px; background: #F3F4F6; color: #9CA3AF; padding: 1px 6px; border-radius: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Protocol cache ────────────────────────────────────────────
+# ── Protocol + threshold cache ────────────────────────────────
 @st.cache_resource
 def load_protocol():
     return load_protocol_files()
@@ -101,16 +309,21 @@ def get_thresholds():
     return load_thresholds()
 
 
-# ── Session state init ────────────────────────────────────────
+# ── Session state ─────────────────────────────────────────────
 defaults = {
     "results": None,
     "data_loaded": False,
     "demo_mode": False,
     "uploaded_file": None,
     "selected_patient": None,
-    "mobile_view": False,
+    "view": "brief",
     "show_wrong": {},
     "show_cooling": {},
+    "show_note": {},
+    "show_feedback": {},    # note_key → True when 👎 tapped, shows reason chips
+    "reviewed_patients": set(),  # patients marked done; filtered from active sections
+    "coach_notes": [],
+    "snooze_set": set(),
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -124,50 +337,76 @@ with st.sidebar:
     st.divider()
 
     st.markdown("**Step 1 — Patient data**")
-
     if st.button("🔬 Load sample patients", type="primary", use_container_width=True):
         st.session_state.demo_mode = True
         st.session_state.uploaded_file = None
         st.session_state.data_loaded = True
         st.session_state.results = None
         st.session_state.selected_patient = None
+        st.session_state.view = "brief"
 
     if st.session_state.demo_mode and st.session_state.data_loaded:
-        st.success("✓ 8 sample patients loaded")
+        try:
+            n = len(load_patients("data/sample_patients.json"))
+            st.success(f"✓ {n} sample patients loaded")
+        except Exception:
+            st.success("✓ Sample patients loaded")
 
-    uploaded = st.file_uploader("Or upload CSV / JSON", type=["csv","json"])
+    uploaded = st.file_uploader("Or upload CSV / JSON", type=["csv", "json"])
     if uploaded:
         st.session_state.demo_mode = False
         st.session_state.uploaded_file = uploaded
         st.session_state.data_loaded = True
         st.session_state.results = None
         st.session_state.selected_patient = None
+        st.session_state.view = "brief"
         st.success(f"✓ {uploaded.name} uploaded")
 
     st.divider()
-
     st.markdown("**Step 2 — Run analysis**")
     run_clicked = st.button(
-        "▶ Run reasoning loop",
-        type="primary",
-        use_container_width=True,
+        "▶ Run reasoning loop", type="primary", use_container_width=True,
         disabled=not st.session_state.data_loaded,
         help="Load patient data first" if not st.session_state.data_loaded else ""
     )
+    if st.button("⚡ Load demo results", use_container_width=True,
+                 help="Replay frozen output — no API call"):
+        try:
+            with open("frozen_output.json") as _f:
+                _frozen = json.load(_f)
+            st.session_state.results = _frozen
+            st.session_state.data_loaded = True
+            st.session_state.demo_mode = True
+            st.session_state.view = "brief"
+            st.session_state.selected_patient = None
+            with open("data/sample_patients.json") as _f:
+                _raw = json.load(_f)
+            st.session_state["raw_patients"] = {
+                p["name"]: p for p in _raw.get("patients", [])
+            }
+            st.rerun()
+        except Exception as _e:
+            st.error(f"Could not load frozen output: {_e}")
     if not st.session_state.data_loaded:
         st.caption("⬆ Load patient data first")
+    st.caption("⚡ Use demo results for UI testing — saves API costs")
 
     st.divider()
+    if st.session_state.results:
+        st.markdown("**Navigate**")
+        if st.button("🏠 Morning Brief", use_container_width=True):
+            st.session_state.view = "brief"
+            st.session_state.selected_patient = None
+            st.rerun()
+        if st.button("⚠️ Slippage Alerts", use_container_width=True):
+            st.session_state.view = "slippage"
+            st.session_state.selected_patient = None
+            st.rerun()
+        if st.button("📋 Coach Notes", use_container_width=True):
+            st.session_state.view = "notes"
+            st.rerun()
+        st.divider()
 
-    # View toggle
-    st.markdown("**View**")
-    mobile = st.toggle("📱 Mobile view", value=st.session_state.mobile_view)
-    st.session_state.mobile_view = mobile
-    st.caption("Desktop: split view · Mobile: table + expand")
-
-    st.divider()
-
-    # Precision tracking
     fb = get_feedback_summary()
     if fb["total"] > 0:
         st.markdown("**Alert precision**")
@@ -198,569 +437,913 @@ if run_clicked:
     with st.status("Running MadhuMitra analysis...", expanded=True) as status:
         st.write("📋 Parsing patient logs...")
         parse_results = parse_all(filepath)
-
-        total = len(parse_results["send_to_llm"])
-        rules = len(parse_results["rules_alerted"])
-        on_track = len(parse_results["on_track"])
-
-        st.write(f"✓ {rules} patients flagged by rules — no AI needed")
-        st.write(f"✓ {on_track} patients on track — skipping AI")
-        st.write(f"🧠 Sending {total} patients to AI reasoning loop...")
+        rules  = len(parse_results["rules_alerted"])
+        to_llm = len(parse_results["send_to_llm"])
+        on_trk = len(parse_results["on_track"])
+        st.write(f"✓ {rules} patients flagged by rules (no AI needed)")
+        st.write(f"✓ {on_trk} patients on track (skipping AI)")
+        st.write(f"🧠 Sending {to_llm} patients to AI reasoning loop...")
 
         llm_results = run_reasoning(
             parse_results["send_to_llm"],
             alert_guide, thresholds, guardrails, output_schema
         )
-
         st.write("📊 Ranking results by priority...")
         final = run_ranker(parse_results, llm_results, thresholds_data)
         st.session_state.results = final
         st.session_state.selected_patient = None
+        st.session_state.view = "brief"
+
+        raw_patients = {}
+        if filepath and filepath.endswith(".json"):
+            try:
+                with open(filepath) as f:
+                    raw_data = json.load(f)
+                for p in raw_data.get("patients", []):
+                    raw_patients[p["name"]] = p
+            except Exception:
+                pass
+        st.session_state["raw_patients"] = raw_patients
 
         total_alerts = len(final["auto_list"]) + len(final["queue_list"])
-        status.update(
-            label=f"✓ Analysis complete — {total_alerts} alerts generated",
-            state="complete"
-        )
+        status.update(label=f"✓ Analysis complete — {total_alerts} alerts generated", state="complete")
 
 
-# ── Helper: get patient details ───────────────────────────────
-def get_patient_detail_data(patient):
-    """Extracts clean display data from a patient result."""
-    s = patient.get("structured", {})
-    h = patient.get("program_history", {})
-    u = patient.get("unstructured", {})
-    comorbidities = h.get("comorbidities", {})
-    active_comorbidities = [
-        k.replace("_", " ")
-        for k, v in comorbidities.items() if v is True
-    ]
-    return s, h, u, active_comorbidities
+# ── Helpers ───────────────────────────────────────────────────
+SEV_LABEL = {"High": "Urgent", "Medium": "Watch", "Low": "Routine", "On Track": "On Track"}
+SEV_CSS   = {"High": "urgent", "Medium": "watch", "Low": "routine", "On Track": "ontrack"}
 
+def sev_label(s): return SEV_LABEL.get(s, s)
+def sev_css(s):   return SEV_CSS.get(s, "queue")
 
-# ── Helper: signal chips HTML ─────────────────────────────────
-def chips_html(signals, max_show=2):
+TIER1_KW = ["foamy", "blurry", "chest", "dizziness", "dizzy", "swelling", "numbness", "tingling"]
+HIGH_KW  = ["medication missed", "above high threshold", "missed log", "consecutive missed",
+            "bp 1", "above 200", "escalat"]
+
+def truncate_words(text, max_chars=160):
+    if not text or len(text) <= max_chars:
+        return text or ""
+    cut = text.rfind(" ", 0, max_chars)
+    return text[:(cut if cut > 0 else max_chars)] + "…"
+
+def shorten_signal(s):
+    sl = s.lower().strip()
+    if "fbs" in sl or "fasting glucose" in sl or "fasting blood" in sl:
+        m = re.search(r"(\d+\.?\d*)\s*mg", s)
+        return f"FBS {m.group(1)} mg/dL" if m else "High glucose"
+    if "blood pressure" in sl or " bp " in sl or "systolic" in sl or "hypertension" in sl:
+        m = re.search(r"(\d{2,3})/(\d{2,3})", s)
+        if m: return f"BP {m.group(1)}/{m.group(2)}"
+        m = re.search(r"(\d{3})", s)
+        return f"BP {m.group(1)} mmHg" if m else "High BP"
+    if "medication" in sl and any(k in sl for k in ["miss", "not taken", "false", "skip"]):
+        return "Medication missed"
+    if "exercise" in sl:
+        if any(k in sl for k in ["0 min", "no exercise", "zero", ": 0", "= 0"]): return "Exercise 0 min"
+        m = re.search(r"(\d+)\s*min", sl)
+        return f"Exercise {m.group(1)} min" if m else "No exercise"
+    if "sleep" in sl:
+        m = re.search(r"(\d+\.?\d*)\s*h", sl)
+        return f"Sleep {m.group(1)}h" if m else "Low sleep"
+    if "stress" in sl:
+        m = re.search(r"(\d)\s*/\s*5", sl)
+        return f"Stress {m.group(1)}/5" if m else "High stress"
+    if "missed log" in sl or ("log" in sl and "miss" in sl):
+        m = re.search(r"(\d+)\s*(?:consecutive|day)", sl)
+        return f"{m.group(1)} missed logs" if m else "Missed log"
+    for kw, label in [("foamy","Foamy urine"),("blurry","Blurry vision"),
+                       ("chest","Chest pain"),("dizz","Dizziness"),
+                       ("numb","Numbness"),("swelling","Swelling"),("escalat","Escalate to doctor")]:
+        if kw in sl: return label
+    if "carb" in sl:
+        m = re.search(r"(\d+)g", sl)
+        return f"Carbs {m.group(1)}g" if m else "High carbs"
+    if "protein" in sl:
+        m = re.search(r"(\d+)g", sl)
+        return f"Protein {m.group(1)}g" if m else "Low protein"
+    words = s.strip().split()
+    short = " ".join(words[:4])
+    return short[:26] + ("…" if len(short) > 26 else "")
+
+def make_chip_html(signals, max_chips=5):
     html = ""
-    for s in signals[:max_show]:
-        short = s[:28] + "…" if len(s) > 28 else s
-        html += f'<span class="chip">{short}</span>'
-    if len(signals) > max_show:
-        html += f'<span class="chip chip-more">+{len(signals)-max_show}</span>'
+    for s in signals[:max_chips]:
+        sl = s.lower()
+        label = shorten_signal(s)
+        cls = "chip chip-red" if (any(k in sl for k in TIER1_KW) or any(k in sl for k in HIGH_KW)) else "chip chip-amb"
+        html += f'<span class="{cls}">{label}</span>'
+    if len(signals) > max_chips:
+        html += f'<span class="chip">+{len(signals)-max_chips} more</span>'
     return html
 
+def get_contact_days(name):
+    raw = st.session_state.get("raw_patients", {}).get(name, {})
+    return raw.get("contact", {}).get("days_since_contact")
 
-# ── Helper: severity css ──────────────────────────────────────
-def sev_css(severity):
-    return {"High": "h", "Medium": "m", "Low": "l"}.get(severity, "q")
+def _save_note(name, action_type, note_text, tags):
+    st.session_state.coach_notes.append({
+        "patient_name": name, "action_type": action_type,
+        "note_text": note_text, "tags": tags,
+        "created_at": datetime.now().strftime("%b %d, %Y · %I:%M %p")
+    })
+
+def _categorize_signal(sig):
+    sl = sig.lower()
+    if any(k in sl for k in ["fbs","glucose","bp","blood pressure","medication","chest","blurry","foamy","escalat","vision"]):
+        return "clinical", "#FEF2F2", "#FECACA", "#DC2626", "🔴"
+    elif any(k in sl for k in ["exercise","sleep","stress","carb","protein","food","diet"]):
+        return "behavioral", "#FFFBEB", "#FDE68A", "#D97706", "🟡"
+    else:
+        return "engagement", "#FFF7ED", "#FED7AA", "#EA580C", "🟠"
 
 
-# ── Render detail panel ───────────────────────────────────────
-def render_detail(patient):
-    if not patient:
+# ── Inline note form ──────────────────────────────────────────
+def render_inline_note(name, note_key):
+    st.markdown(
+        '<div style="background:#F0FDFA;border:1px solid #99F6E4;border-radius:8px;padding:12px 14px;margin-bottom:12px;">',
+        unsafe_allow_html=True
+    )
+    action_types = {"📞 Called": "called", "💬 Messaged": "messaged",
+                    "🎥 Video": "video", "🚨 Escalated": "escalated"}
+    sel_type = st.radio("Action type", list(action_types.keys()),
+                        horizontal=True, key=f"atype_{note_key}")
+    note_text = st.text_area("Note", placeholder="What did you discuss or observe?",
+                              key=f"ntext_{note_key}", height=90, label_visibility="collapsed")
+    focus_opts = ["Medication", "Food guidance", "Exercise", "Stress", "BP", "Escalation"]
+    selected_tags = st.multiselect("Focus", focus_opts, key=f"ntags_{note_key}")
+    n1, n2 = st.columns(2)
+    with n1:
+        if st.button("✓ Save Note", key=f"nsave_{note_key}", type="primary", use_container_width=True):
+            if note_text.strip():
+                _save_note(name, action_types[sel_type], note_text.strip(), selected_tags)
+                st.session_state.show_note[note_key] = False
+                st.toast(f"✓ Note saved for {name}")
+                st.rerun()
+            else:
+                st.warning("Please enter a note before saving.")
+    with n2:
+        if st.button("Cancel", key=f"ncancel_{note_key}", use_container_width=True):
+            st.session_state.show_note[note_key] = False
+            st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ── Patient card (morning brief) ──────────────────────────────
+def render_patient_card(patient, idx, section):
+    name     = patient.get("name", "")
+    severity = patient.get("severity", "")
+    label    = sev_label(severity)
+    css      = sev_css(severity)
+    signals  = patient.get("signals", []) or [d.replace("_", " ") for d in patient.get("deviations", [])]
+    reasoning = patient.get("reasoning", "") or patient.get("rules_reasoning", "")
+    h         = patient.get("program_history", {})
+    week      = h.get("week_number", "?")
+    days      = get_contact_days(name)
+    note_key  = f"{section}_{idx}"
+
+    reason_short = truncate_words(reasoning, 160)
+    contact_tag  = f'<span class="meta-tag">· Last contact: {days}d ago</span>' if days is not None else ""
+
+    st.markdown(f"""
+<div class="patient-card {css}">
+  <div class="card-top">
+    <div class="card-row1">
+      <div class="patient-name">{name}</div>
+      <span class="severity-badge badge-{css}">{label}</span>
+    </div>
+    <div class="flag-reason">{reason_short}</div>
+    <div class="meta-row">
+      <span class="meta-tag">Week {week}</span>
+      {contact_tag}
+    </div>
+  </div>
+  <div class="signal-chips">{make_chip_html(signals)}</div>
+</div>""", unsafe_allow_html=True)
+
+    # 4-button action row: View Profile | Add Note | 👍 | 👎
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        if st.button("View Profile", key=f"view_{section}_{idx}",
+                     use_container_width=True, type="primary"):
+            st.session_state.selected_patient = name
+            st.session_state.view = "profile"
+            st.rerun()
+    with c2:
+        if st.button("Add Note", key=f"note_{section}_{idx}", use_container_width=True):
+            st.session_state.show_note[note_key] = not st.session_state.show_note.get(note_key, False)
+            st.session_state.show_feedback[note_key] = False
+            st.rerun()
+    with c3:
+        if st.button("👍 Correct", key=f"up_{section}_{idx}", use_container_width=True):
+            record_feedback(name, severity, patient.get("track", "auto"), signals, reasoning, "correct")
+            st.session_state.reviewed_patients.add(name)
+            st.toast(f"👍 {name} — marked correct, moved to reviewed")
+            st.rerun()
+    with c4:
+        if st.button("👎 Wrong", key=f"dn_{section}_{idx}", use_container_width=True):
+            st.session_state.show_feedback[note_key] = not st.session_state.show_feedback.get(note_key, False)
+            st.session_state.show_note[note_key] = False
+            st.rerun()
+
+    # Inline: wrong-alert reason chips
+    if st.session_state.show_feedback.get(note_key):
         st.markdown(
-            '<div class="empty-state">Select a patient to see details</div>',
+            '<div class="feedback-row">'
+            '<div class="feedback-row-label">👎 Why was this wrong? (tap to submit)</div>',
             unsafe_allow_html=True
         )
+        reasons = ["False positive", "Severity too high", "Already handled", "Low priority"]
+        fb_cols = st.columns(len(reasons))
+        for i, (col, reason) in enumerate(zip(fb_cols, reasons)):
+            with col:
+                if st.button(reason, key=f"fbr_{note_key}_{i}", use_container_width=True):
+                    record_feedback(name, severity, patient.get("track", "auto"),
+                                    signals, reasoning, "incorrect", reason)
+                    st.session_state.reviewed_patients.add(name)
+                    st.session_state.show_feedback[note_key] = False
+                    st.toast(f"👎 Feedback saved — {reason}")
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Inline: note form
+    if st.session_state.show_note.get(note_key):
+        render_inline_note(name, note_key)
+
+    st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
+
+
+# ── Slippage card (morning brief) ─────────────────────────────
+def render_slippage_card(patient, idx):
+    name      = patient.get("name", "")
+    severity  = patient.get("severity", "")
+    reasoning = patient.get("reasoning", "")
+    h         = patient.get("program_history", {})
+    week      = h.get("week_number", "?")
+    days      = get_contact_days(name)
+    signals   = patient.get("signals", [])
+    note_key  = f"slip_{idx}"
+
+    reason_short = truncate_words(reasoning, 160)
+    contact_tag  = f'<span class="meta-tag">· Last contact: {days}d ago</span>' if days is not None else ""
+
+    st.markdown(f"""
+<div class="patient-card slippage">
+  <div class="card-top">
+    <div class="card-row1">
+      <div class="patient-name">{name}</div>
+      <span class="severity-badge badge-slippage">Slippage</span>
+    </div>
+    <div class="flag-reason">{reason_short}</div>
+    <div class="meta-row">
+      <span class="meta-tag">Week {week}</span>
+      {contact_tag}
+    </div>
+  </div>
+  <div class="signal-chips">{make_chip_html(signals)}</div>
+</div>""", unsafe_allow_html=True)
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        if st.button("View Profile", key=f"view_slip_{idx}",
+                     use_container_width=True, type="primary"):
+            st.session_state.selected_patient = name
+            st.session_state.view = "profile"
+            st.rerun()
+    with c2:
+        if st.button("Add Note", key=f"note_slip_{idx}", use_container_width=True):
+            st.session_state.show_note[note_key] = not st.session_state.show_note.get(note_key, False)
+            st.session_state.show_feedback[note_key] = False
+            st.rerun()
+    with c3:
+        if st.button("👍 Correct", key=f"up_slip_{idx}", use_container_width=True):
+            record_feedback(name, severity, "on_track", signals, reasoning, "correct")
+            st.session_state.reviewed_patients.add(name)
+            st.toast(f"👍 {name} — marked correct")
+            st.rerun()
+    with c4:
+        if st.button("👎 Wrong", key=f"dn_slip_{idx}", use_container_width=True):
+            st.session_state.show_feedback[note_key] = not st.session_state.show_feedback.get(note_key, False)
+            st.session_state.show_note[note_key] = False
+            st.rerun()
+
+    if st.session_state.show_feedback.get(note_key):
+        st.markdown('<div class="feedback-row"><div class="feedback-row-label">👎 Why was this wrong?</div>', unsafe_allow_html=True)
+        reasons = ["False positive", "Not slippage", "Already handled", "Low priority"]
+        fb_cols = st.columns(len(reasons))
+        for i, (col, reason) in enumerate(zip(fb_cols, reasons)):
+            with col:
+                if st.button(reason, key=f"sfbr_{note_key}_{i}", use_container_width=True):
+                    record_feedback(name, severity, "on_track", signals, reasoning, "incorrect", reason)
+                    st.session_state.reviewed_patients.add(name)
+                    st.session_state.show_feedback[note_key] = False
+                    st.toast(f"👎 Feedback saved")
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.show_note.get(note_key):
+        render_inline_note(name, note_key)
+
+    st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
+
+
+# ── Patient Profile — redesigned ──────────────────────────────
+def render_patient_profile():
+    name = st.session_state.selected_patient
+    r    = st.session_state.results
+
+    all_p   = r["auto_list"] + r["queue_list"] + r["nudge_list"] + r["on_track"]
+    patient = next((p for p in all_p if p.get("name") == name), None)
+    if not patient:
+        st.error("Patient not found")
+        if st.button("← Back"):
+            st.session_state.view = "brief"
+            st.rerun()
         return
 
-    name = patient.get("name", "")
+    raw  = st.session_state.get("raw_patients", {}).get(name, {})
+    s    = raw.get("structured", patient.get("structured", {}))
+    h    = raw.get("program_history", patient.get("program_history", {}))
+    u    = raw.get("unstructured", patient.get("unstructured", {}))
 
-    # Merge with raw patient data
-    raw_patients = st.session_state.get("raw_patients", {})
-    raw = raw_patients.get(name, {})
-    s = raw.get("structured", patient.get("structured", {}))
-    h = raw.get("program_history", patient.get("program_history", {}))
-    u = raw.get("unstructured", patient.get("unstructured", {}))
+    severity = patient.get("severity", "")
+    label    = sev_label(severity)
+    css      = sev_css(severity)
+    avatar   = name.split()[0][0].upper()
+    age      = raw.get("age") or patient.get("age", "—")
+    gender   = raw.get("gender") or patient.get("gender", "—")
+    week     = h.get("week_number", "?")
+    phase    = h.get("phase", "")
 
-    severity          = patient.get("severity", "")
-    signals           = patient.get("signals", [])
-    # Rules-alerted patients use deviations instead of signals
-    if not signals:
-        raw_deviations = patient.get("deviations", [])
-        signals = [d.replace("_", " ") for d in raw_deviations]
-    reasoning         = patient.get("reasoning", "") or patient.get("rules_reasoning", "")
-    escalate          = patient.get("escalate_to_doctor", False)
+    comorbidities = [k.replace("_", " ") for k, v in h.get("comorbidities", {}).items() if v is True]
+    comorbid_str  = ", ".join(comorbidities) if comorbidities else "No comorbidities"
+
+    escalate           = patient.get("escalate_to_doctor", False)
     escalation_reasons = patient.get("escalation_reasons", [])
-    targets           = h.get("clinical_targets", {})
-    comorbidities_dict = h.get("comorbidities", {})
-    comorbidities     = [k.replace("_"," ") for k,v in comorbidities_dict.items() if v is True]
-    contact_status    = get_contact_status(name)
-    age               = raw.get("age") or patient.get("age", "")
-    gender            = raw.get("gender") or patient.get("gender", "")
+    signals            = patient.get("signals", []) or [d.replace("_", " ") for d in patient.get("deviations", [])]
+    reasoning          = patient.get("reasoning", "") or patient.get("rules_reasoning", "")
+    targets            = h.get("clinical_targets", {})
 
-    sev_emoji = {"High": "🔴", "Medium": "🟡", "Low": "🟢"}.get(severity, "⚪")
+    # Key vitals for header pills
+    fbs       = s.get("fbs_mgdl")
+    bp_sys    = s.get("blood_pressure_systolic")
+    bp_dia    = s.get("blood_pressure_diastolic")
+    med_taken = s.get("medication_taken")
 
-    # ── Header ─────────────────────────────────────────────────
-    st.markdown(f"**{sev_emoji} {name} — {severity}**")
-    st.caption(
-        f"Age {age} · {gender} · Week {h.get('week_number','?')} · "
-        f"{', '.join(comorbidities) if comorbidities else 'No comorbidities'}"
-    )
+    fbs_txt  = f"{fbs}" if fbs else "—"
+    bp_txt   = f"{bp_sys}/{bp_dia}" if bp_sys else "—"
+    med_txt  = "✓ Taken" if med_taken else ("✗ Missed" if med_taken is False else "—")
+    med_color = "" if med_taken else ("color:#DC2626" if med_taken is False else "")
 
-    # ── Status badge — severity + escalation flag ─────────────
+    phase_txt = f"Phase {phase}" if phase else ""
+
+    st.markdown(f"""
+<div class="profile-header">
+  <div class="profile-hero">
+    <div class="avatar">{avatar}</div>
+    <div style="flex:1;">
+      <div class="hero-name">
+        {name}
+        <span class="severity-badge badge-{css}" style="font-size:9px;vertical-align:middle;margin-left:6px;">{label}</span>
+      </div>
+      <div class="hero-meta">Age {age} · {gender} · Week {week} {phase_txt}</div>
+      <div class="hero-comorbid">{comorbid_str}</div>
+    </div>
+  </div>
+  <div class="profile-stats">
+    <div class="stat-pill">
+      <div class="stat-val">{fbs_txt}</div>
+      <div class="stat-lbl">FBS mg/dL</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val">{bp_txt}</div>
+      <div class="stat-lbl">BP mmHg</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" style="{med_color}">{med_txt}</div>
+      <div class="stat-lbl">Medication</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val">{s.get('exercise_minutes','—')}</div>
+      <div class="stat-lbl">Exercise min</div>
+    </div>
+  </div>
+</div>""", unsafe_allow_html=True)
+
+    pb1, pb2 = st.columns(2)
+    with pb1:
+        if st.button("← Morning Brief", use_container_width=True):
+            st.session_state.view = "brief"
+            st.session_state.selected_patient = None
+            st.rerun()
+    with pb2:
+        if st.button("📋 Add Note", use_container_width=True, type="primary"):
+            st.session_state.selected_patient = name
+            st.session_state.view = "notes"
+            st.rerun()
+
+    # ── Alert banner ──────────────────────────────────────────
     if escalate:
-        st.markdown(
-            f'<div style="background:#FEF2F2;border:0.5px solid #FECACA;'
-            f'border-radius:8px;padding:8px 14px;margin:8px 0;font-size:12px;">'
-            f'🚨 <strong>Doctor escalation recommended</strong> — '
-            f'{", ".join(escalation_reasons)}</div>',
-            unsafe_allow_html=True
-        )
+        st.error(f"🚨 **Doctor escalation required** — {', '.join(escalation_reasons)}")
     elif severity == "High":
-        st.markdown(
-            '<div style="background:#FEF2F2;border:0.5px solid #FECACA;'
-            'border-radius:8px;padding:8px 14px;margin:8px 0;font-size:12px;">'
-            '🔴 <strong>High priority</strong> — same-day contact</div>',
-            unsafe_allow_html=True
-        )
+        st.error("🔴 **Urgent** — Same-day coach contact required")
     elif severity == "Medium":
-        st.markdown(
-            '<div style="background:#FFFBEB;border:0.5px solid #FDE68A;'
-            'border-radius:8px;padding:8px 14px;margin:8px 0;font-size:12px;">'
-            '🟡 <strong>Medium priority</strong> — within 24 hours</div>',
-            unsafe_allow_html=True
-        )
+        st.warning("🟡 **Watch** — Contact within 24 hours")
 
+    contact_status = get_contact_status(name)
     if contact_status:
-        days = contact_status["days_since_contact"]
+        days_c    = contact_status["days_since_contact"]
         remaining = contact_status["days_remaining"]
-        st.info(
-            f"🔄 Contacted {days} day{'s' if days!=1 else ''} ago · "
-            f"Cooling expires in {remaining} day{'s' if remaining!=1 else ''}"
-        )
+        st.info(f"📞 Contacted {days_c}d ago · Cooling expires in {remaining}d")
 
-    # ── WHY block — colour-coded signals ─────────────────────
-    st.markdown("**Why this alert was raised**")
-
-    # Classify signals by urgency for colour coding
-    tier1_keywords = ["foamy", "blurry", "chest", "dizziness", "dizzy",
-                      "swelling", "numbness", "tingling"]
-    high_keywords  = ["medication missed", "above high threshold", "bp 1",
-                      "above 200", "consecutive missed log"]
-    med_keywords   = ["above medium", "above threshold", "above target",
-                      "stress score", "sleep", "exercise 0", "below target",
-                      "craving", "negative mood"]
-
-    def signal_colour(sig):
-        sl = sig.lower()
-        if any(k in sl for k in tier1_keywords):
-            return "#DC2626", "#FEF2F2", "🔴"
-        if any(k in sl for k in high_keywords):
-            return "#DC2626", "#FEF2F2", "🔴"
-        if any(k in sl for k in med_keywords):
-            return "#D97706", "#FFFBEB", "🟡"
-        return "#6B7280", "#F9FAFB", "🟠"
-
+    # ── Why this alert was raised ─────────────────────────────
     if signals:
-        for sig in signals[:8]:
-            color, bg, dot = signal_colour(sig)
-            st.markdown(
-                f'<div style="background:{bg};border-left:3px solid {color};'
-                f'padding:5px 10px;border-radius:0 5px 5px 0;'
-                f'font-size:12px;color:#1A1A18;margin-bottom:4px;">'
-                f'{dot} {sig}</div>',
-                unsafe_allow_html=True
-            )
+        # Group by category
+        clinical, behavioral, engagement = [], [], []
+        for sig in signals[:10]:
+            cat, *_ = _categorize_signal(sig)
+            if cat == "clinical":    clinical.append(sig)
+            elif cat == "behavioral": behavioral.append(sig)
+            else:                     engagement.append(sig)
 
-    # ── Reasoning — narrative ─────────────────────────────────
+        def _signal_rows(sigs):
+            html = ""
+            for sig in sigs:
+                cat, bg, border, txtcolor, dot = _categorize_signal(sig)
+                short = shorten_signal(sig)
+                # Show shortened as the headline, full text as detail
+                detail = sig if sig != short and len(sig) < 200 else ""
+                html += f"""
+<div class="profile-signal {cat}">
+  <div class="signal-dot" style="color:{txtcolor};">{dot}</div>
+  <div>
+    <div class="signal-main" style="color:{txtcolor};">{short}</div>
+    {"<div class='signal-detail'>" + detail + "</div>" if detail else ""}
+  </div>
+  <div class="signal-cat">{cat}</div>
+</div>"""
+            return html
+
+        st.markdown('<div class="signal-section">'
+                    '<div class="signal-section-title">🚨 Why this alert was raised</div>',
+                    unsafe_allow_html=True)
+
+        if clinical:
+            st.markdown(
+                '<div style="font-size:10px;font-weight:700;color:#DC2626;text-transform:uppercase;'
+                'letter-spacing:0.05em;margin-bottom:4px;">Clinical signals</div>'
+                + _signal_rows(clinical), unsafe_allow_html=True)
+        if behavioral:
+            st.markdown(
+                '<div style="font-size:10px;font-weight:700;color:#D97706;text-transform:uppercase;'
+                'letter-spacing:0.05em;margin-top:8px;margin-bottom:4px;">Behavioral signals</div>'
+                + _signal_rows(behavioral), unsafe_allow_html=True)
+        if engagement:
+            st.markdown(
+                '<div style="font-size:10px;font-weight:700;color:#EA580C;text-transform:uppercase;'
+                'letter-spacing:0.05em;margin-top:8px;margin-bottom:4px;">Engagement signals</div>'
+                + _signal_rows(engagement), unsafe_allow_html=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── AI reasoning block ────────────────────────────────────
     if reasoning:
-        with st.expander("Full reasoning", expanded=False):
-            st.caption(reasoning)
+        st.markdown(f"""
+<div class="reasoning-block">
+  <div class="reasoning-label">🧠 AI Assessment</div>
+  <div class="reasoning-text">{reasoning}</div>
+</div>""", unsafe_allow_html=True)
 
     # ── Today's data ──────────────────────────────────────────
-    with st.expander("Today's data", expanded=True):
-        s_data = [
-            ("FBS", f"{s.get('fbs_mgdl','—')} mg/dL",
-             f"target {targets.get('fbs_target_mgdl','—')}"),
-            ("Exercise", f"{s.get('exercise_minutes','—')} min",
-             s.get('exercise_type','') or ""),
-            ("Sleep", f"{s.get('sleep_hours','—')} hrs",
-             s.get('sleep_quality','') or ""),
-            ("BP", f"{s.get('blood_pressure_systolic','—')}/"
-             f"{s.get('blood_pressure_diastolic','—')} mmHg", ""),
-            ("Stress", f"{s.get('stress_score','—')}/5", ""),
-            ("Protein", f"{s.get('protein_g','—')}g",
-             f"target {h.get('protein_target_g','—')}g"),
-            ("Carbs", f"{s.get('carbs_g','—')}g",
-             f"target {h.get('carb_target_g','—')}g"),
-            ("Medication",
-             "✓ Taken" if s.get('medication_taken') else "✗ Missed", ""),
-        ]
-        for label, val, sub in s_data:
-            cl, cr = st.columns([1.2, 1.8])
-            cl.caption(label)
-            cr.caption(f"**{val}** {sub}" if sub else f"**{val}**")
+    t_fbs = targets.get("fbs_target_mgdl")
 
+    def _val_color(val, target, lower_is_better=True):
+        if not val or not target: return ""
+        return "data-good" if (val <= target if lower_is_better else val >= target) else "data-bad"
+
+    med_str = "✓ Taken" if med_taken else ("✗ Missed" if med_taken is False else "—")
+    med_cls = "data-good" if med_taken else ("data-bad" if med_taken is False else "")
+
+    with st.expander("📊 Today's full data", expanded=False):
+        rows = [
+            ("Fasting Glucose", f"{fbs or '—'} mg/dL", f"target {t_fbs}" if t_fbs else "",
+             _val_color(fbs, t_fbs) if fbs and t_fbs else ""),
+            ("Blood Pressure", f"{bp_txt} mmHg", "target <130/80", ""),
+            ("Medication", med_str, "", med_cls),
+            ("Exercise", f"{s.get('exercise_minutes','—')} min", "target 30 min",
+             _val_color(s.get('exercise_minutes'), 30, lower_is_better=False)),
+            ("Sleep", f"{s.get('sleep_hours','—')} hrs", s.get("sleep_quality","") or "", ""),
+            ("Stress", f"{s.get('stress_score','—')}/5", "", ""),
+            ("Protein", f"{s.get('protein_g','—')}g", f"target {h.get('protein_target_g','—')}g", ""),
+            ("Carbs", f"{s.get('carbs_g','—')}g", f"target {h.get('carb_target_g','—')}g", ""),
+        ]
+        for label_d, val, sub, cls in rows:
+            st.markdown(f"""
+<div class="data-row">
+  <div class="data-label">{label_d}</div>
+  <div class="data-value {cls}">{val}</div>
+  <div class="data-sub">{sub}</div>
+</div>""", unsafe_allow_html=True)
         if u.get("free_text"):
-            st.caption(f"💬 *\"{u['free_text']}\"*")
+            st.markdown(f'<div style="margin-top:10px;font-size:12px;color:#6B7280;font-style:italic;">💬 &ldquo;{u["free_text"]}&rdquo;</div>', unsafe_allow_html=True)
         if u.get("coach_notes"):
-            st.caption(f"📋 {u['coach_notes']}")
+            st.markdown(f'<div style="margin-top:6px;font-size:12px;color:#374151;">📋 {u["coach_notes"]}</div>', unsafe_allow_html=True)
 
     st.divider()
 
-    # ── Actions ───────────────────────────────────────────────
-    col_a, col_b = st.columns(2)
-    with col_a:
-        if st.button("👍 Correct", key=f"det_up_{name}", use_container_width=True):
-            record_feedback(name, severity, patient.get("track","auto"),
-                          signals, reasoning, "correct")
-            st.success("✓ Saved")
+    # ── Coach actions ─────────────────────────────────────────
+    st.markdown("**⚡ Coach actions**")
+    ca1, ca2 = st.columns(2)
+    with ca1:
+        if st.button("👍 Correct alert", use_container_width=True, key=f"prof_up_{name}"):
+            record_feedback(name, severity, patient.get("track", "auto"), signals, reasoning, "correct")
+            st.session_state.reviewed_patients.add(name)
+            st.success("✓ Feedback saved")
             st.rerun()
-    with col_b:
-        if st.button("👎 Wrong", key=f"det_dn_{name}", use_container_width=True):
+    with ca2:
+        if st.button("👎 Wrong alert", use_container_width=True, key=f"prof_dn_{name}"):
             st.session_state.show_wrong[name] = True
             st.rerun()
 
     if st.session_state.show_wrong.get(name):
         wr = st.selectbox("Why wrong?",
-            ["Select…","Not urgent / false positive","Severity too high",
-             "Severity too low","Patient already handled","Other"],
-            key=f"wr_{name}")
+            ["Select…", "Not urgent / false positive", "Severity too high",
+             "Severity too low", "Patient already handled", "Other"],
+            key=f"prof_wr_{name}")
         if wr != "Select…":
-            if st.button("Submit", key=f"wrsub_{name}", use_container_width=True):
-                record_feedback(name, severity, patient.get("track","auto"),
-                              signals, reasoning, "incorrect", wr)
+            if st.button("Submit feedback", key=f"prof_wrsub_{name}", use_container_width=True):
+                record_feedback(name, severity, patient.get("track", "auto"),
+                                signals, reasoning, "incorrect", wr)
                 st.session_state.show_wrong[name] = False
+                st.session_state.reviewed_patients.add(name)
                 st.rerun()
 
     if not contact_status:
-        if st.button("📞 Mark contacted", key=f"det_con_{name}",
-                    use_container_width=True):
+        if st.button("📞 Mark Contacted", use_container_width=True, key=f"prof_con_{name}"):
             st.session_state.show_cooling[name] = True
             st.rerun()
         if st.session_state.show_cooling.get(name):
-            cl = st.selectbox("Cooling period",
-                ["High priority (1 day)", "Medium priority (2 days)",
-                 "Low priority (3 days)"],
-                key=f"cl_{name}")
-            level = cl.split(" ")[0]
-            if st.button("Confirm", key=f"clconf_{name}",
-                        use_container_width=True):
+            cooling = st.selectbox("Cooling period",
+                ["Urgent — 1 day", "Watch — 2 days", "Routine — 3 days"],
+                key=f"prof_cl_{name}")
+            level = cooling.split(" ")[0]
+            if st.button("Confirm", key=f"prof_clconf_{name}", use_container_width=True):
                 mark_contacted(name, severity, level, signals)
                 st.session_state.show_cooling[name] = False
                 st.rerun()
     else:
-        col_ext, col_ov = st.columns(2)
-        with col_ext:
-            extra = st.number_input("Extend (days)", 1, 7, 1,
-                                   key=f"ext_{name}")
-            if st.button("Extend cooling", key=f"extb_{name}",
-                        use_container_width=True):
+        ce1, ce2 = st.columns(2)
+        with ce1:
+            extra = st.number_input("Extend (days)", 1, 7, 1, key=f"ext_{name}")
+            if st.button("Extend cooling", key=f"extb_{name}", use_container_width=True):
                 extend_cooling(name, extra)
                 st.rerun()
-        with col_ov:
-            if st.button("Override → alert", key=f"ov_{name}",
-                        use_container_width=True):
-                mark_contacted(name, severity, "High", signals)
+        with ce2:
+            if st.button("Override → re-alert", key=f"ov_{name}", use_container_width=True):
+                mark_contacted(name, severity, "Urgent", signals)
                 st.rerun()
 
+    # ── Previous notes ────────────────────────────────────────
+    patient_notes = [n for n in st.session_state.coach_notes if n["patient_name"] == name]
+    if patient_notes:
+        st.divider()
+        st.markdown(f"**📋 Notes history** ({len(patient_notes)})")
+        TAG_CSS = {"called":"tag-called","messaged":"tag-messaged","video":"tag-video","escalated":"tag-escalated"}
+        for note in reversed(patient_notes):
+            tag_css   = TAG_CSS.get(note.get("action_type",""), "tag-called")
+            tag_label = note.get("action_type","Note").capitalize()
+            tags_html = "".join(f'<span class="ns-chip">{t}</span>' for t in note.get("tags",[]))
+            st.markdown(f"""
+<div class="note-item">
+  <div><span class="note-tag {tag_css}">{tag_label}</span><span class="note-date">{note.get('created_at','')}</span></div>
+  <div class="note-text">{note.get('note_text','')}</div>
+  <div class="note-signals">{tags_html}</div>
+</div>""", unsafe_allow_html=True)
 
-# ── Render patient table ──────────────────────────────────────
-def render_table(patients, card_type="alert"):
-    if not patients:
-        st.markdown('<div class="empty-state">No patients in this category</div>',
-                   unsafe_allow_html=True)
+
+# ── Coach Notes page ──────────────────────────────────────────
+def render_coach_notes():
+    if st.button("← Morning Brief", use_container_width=False):
+        st.session_state.view = "brief"
+        st.rerun()
+
+    r = st.session_state.results
+    all_patients = sorted(set(
+        p.get("name","") for p in
+        r["auto_list"] + r["queue_list"] + r["nudge_list"] + r["on_track"]
+    )) if r else []
+
+    pre_selected = st.session_state.selected_patient
+    default_idx  = all_patients.index(pre_selected) if pre_selected in all_patients else 0
+    selected_name = st.selectbox("Patient", all_patients, index=default_idx,
+                                  key="notes_patient_sel") if all_patients else None
+
+    if selected_name:
+        raw  = st.session_state.get("raw_patients", {}).get(selected_name, {})
+        h    = raw.get("program_history", {})
+        s    = raw.get("structured", {})
+        week = h.get("week_number","?")
+        fbs  = s.get("fbs_mgdl","")
+        fbs_txt  = f"FBS {fbs} mg/dL · " if fbs else ""
+        initials = "".join(w[0].upper() for w in selected_name.split()[:2])
+        st.markdown(f"""
+<div class="notes-header">
+  <h2>📋 Coach Note</h2>
+  <div class="patient-strip-notes">
+    <div class="avatar-sm">{initials}</div>
+    <div>
+      <div class="ps-name">{selected_name}</div>
+      <div class="ps-meta">Week {week} · {fbs_txt}Program active</div>
+    </div>
+  </div>
+</div>""", unsafe_allow_html=True)
+
+    st.markdown("**Log an intervention**")
+    action_map = {"📞 Called":"called","💬 Messaged":"messaged","🎥 Video call":"video","🚨 Escalated":"escalated"}
+    sel_action = st.radio("Action type", list(action_map.keys()), horizontal=True, key="notes_action")
+    note_text  = st.text_area("Note", placeholder="e.g. Called patient — discussed medication adherence...",
+                               height=120, key="notes_text")
+    st.caption(f"{len(note_text)}/500 characters")
+
+    focus_opts    = ["Medication","Food guidance","Exercise","Stress management","BP monitoring","Doctor escalation","Onboarding"]
+    selected_tags = st.multiselect("Intervention focus", focus_opts, key="notes_tags")
+    outcome       = st.selectbox("Outcome", [
+        "Patient receptive — agreed to action","No answer — left voicemail",
+        "Patient acknowledged — no commitment","Escalated to doctor","Referral made",
+    ], key="notes_outcome")
+    followup = st.date_input("Follow-up reminder (optional)", value=None, key="notes_followup")
+
+    s1, s2 = st.columns(2)
+    with s1:
+        if st.button("Cancel", use_container_width=True, key="notes_cancel"):
+            st.session_state.view = "brief"
+            st.rerun()
+    with s2:
+        if st.button("✓ Save Note", use_container_width=True, type="primary", key="notes_save"):
+            if note_text.strip() and selected_name:
+                _save_note(selected_name, action_map[sel_action], note_text.strip(), selected_tags)
+                st.success(f"✓ Note saved for {selected_name}" + (f" · Follow-up: {followup}" if followup else ""))
+                st.session_state.view = "brief"
+                st.rerun()
+            else:
+                st.warning("Please enter a note.")
+
+    patient_notes = [n for n in st.session_state.coach_notes if n.get("patient_name") == selected_name]
+    if patient_notes:
+        st.divider()
+        st.markdown(f"**Previous notes — {selected_name}** ({len(patient_notes)} total)")
+        TAG_CSS = {"called":"tag-called","messaged":"tag-messaged","video":"tag-video","escalated":"tag-escalated"}
+        for note in reversed(patient_notes):
+            tag_css   = TAG_CSS.get(note.get("action_type",""), "tag-called")
+            tag_label = note.get("action_type","Note").capitalize()
+            tags_html = "".join(f'<span class="ns-chip">{t}</span>' for t in note.get("tags",[]))
+            st.markdown(f"""
+<div class="note-item">
+  <div><span class="note-tag {tag_css}">{tag_label}</span><span class="note-date">{note.get('created_at','')}</span></div>
+  <div class="note-text">{note.get('note_text','')}</div>
+  <div class="note-signals">{tags_html}</div>
+</div>""", unsafe_allow_html=True)
+    elif selected_name:
+        st.caption("No notes yet for this patient.")
+
+
+# ── Slippage Alerts page ──────────────────────────────────────
+def render_slippage_page(r):
+    nudge_raw = r["nudge_list"] + [p for p in r["auto_list"] if p.get("severity") == "Low" and p.get("nudge_risk")]
+    seen, slippage = set(), []
+    for p in nudge_raw:
+        if p.get("name") not in seen:
+            slippage.append(p); seen.add(p.get("name"))
+
+    if st.button("← Morning Brief", use_container_width=False):
+        st.session_state.view = "brief"
+        st.rerun()
+
+    st.markdown(f"""
+<div class="slippage-page-header">
+  <h2>⚠️ Slippage Alerts</h2>
+  <div class="slippage-explainer">
+    <strong>Engagement risk, not clinical emergency.</strong>
+    These patients show patterns like declining log frequency, missed entries, or motivation drop.
+    They need a warm check-in — not urgent clinical action.
+  </div>
+</div>""", unsafe_allow_html=True)
+
+    mc1, mc2, mc3 = st.columns(3)
+    mc1.metric("Patients at Risk", len(slippage))
+    mc2.metric("On Track", len(r["on_track"]))
+    mc3.metric("Notes Today", sum(1 for n in st.session_state.coach_notes
+                                  if n.get("created_at","").startswith(datetime.now().strftime("%b %d"))))
+
+    if not slippage:
+        st.success("✅ No slippage alerts right now.")
         return
 
-    thresholds_data = get_thresholds()
-
-    for i, patient in enumerate(patients):
-        name = patient.get("name","")
-        severity = patient.get("severity","")
-        signals = patient.get("signals", [])
-        # Rules-alerted patients use deviations
-        if not signals:
-            signals = [d.replace("_"," ") for d in patient.get("deviations", [])]
-        escalate = patient.get("escalate_to_doctor", False)
-        contact_status = get_contact_status(name)
-
-        is_selected = st.session_state.selected_patient == name
-        sev_c = sev_css(severity)
-
-        # Row — no dot, pill carries the colour
-        col_name, col_sev, col_sig, col_act = st.columns([2.5, 1, 3, 1.5])
-
-        with col_name:
-            label = f"**{name}**"
-            if escalate: label += " 🚨"
-            if contact_status: label += " 📞"
-            if st.button(label, key=f"row_{card_type}_{i}", use_container_width=True):
-                if st.session_state.selected_patient == name:
-                    st.session_state.selected_patient = None
-                else:
-                    st.session_state.selected_patient = name
-                st.rerun()
-
-        with col_sev:
-            st.markdown(
-                f'<span class="pill pill-{sev_c}">{severity}</span>',
-                unsafe_allow_html=True
-            )
-
-        with col_sig:
-            st.markdown(chips_html(signals, 2), unsafe_allow_html=True)
-
-        with col_act:
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("👍", key=f"up_{card_type}_{i}",
-                            help="Correct alert"):
-                    record_feedback(name, severity, patient.get("track","auto"),
-                                  signals, patient.get("reasoning",""), "correct")
-                    st.rerun()
-            with c2:
-                if st.button("👎", key=f"dn_{card_type}_{i}",
-                            help="Wrong alert"):
-                    st.session_state.show_wrong[name] = True
-                    st.session_state.selected_patient = name
-                    st.rerun()
-
-        # Wrong reason inline
-        if st.session_state.show_wrong.get(name):
-            wr = st.selectbox("Why wrong?",
-                ["Select…","Not urgent / false positive","Severity too high",
-                 "Severity too low","Patient already handled","Other"],
-                key=f"twr_{name}_{i}")
-            if wr != "Select…":
-                if st.button("Submit", key=f"twrsub_{name}_{i}"):
-                    record_feedback(name, severity, patient.get("track","auto"),
-                                  signals, patient.get("reasoning",""), "incorrect", wr)
-                    st.session_state.show_wrong[name] = False
-                    st.rerun()
-
-        # Expand on mobile
-        if st.session_state.mobile_view and is_selected:
-            with st.container():
-                render_detail(patient)
-
-        st.markdown(
-            '<hr style="margin:4px 0;border:none;border-top:0.5px solid #E5E3DC;">',
-            unsafe_allow_html=True
-        )
-
-
-# ── Main display ──────────────────────────────────────────────
-if st.session_state.data_loaded and not st.session_state.results:
-    st.markdown("## 🩺 MadhuMitra — Coach Dashboard")
     st.divider()
-    # Patient preview before analysis
+    for i, p in enumerate(slippage):
+        name      = p.get("name","")
+        reasoning = p.get("reasoning","")
+        h         = p.get("program_history",{})
+        week      = h.get("week_number","?")
+        signals   = p.get("signals",[])
+        raw       = st.session_state.get("raw_patients",{}).get(name,{})
+        age       = raw.get("age",""); gender = raw.get("gender","")
+        snoozed   = name in st.session_state.snooze_set
+
+        if snoozed:
+            st.markdown(f"""
+<div class="on-track-row">
+  <span style="font-size:16px">😴</span>
+  <div><div class="on-track-name">{name}</div><div class="on-track-sub">Snoozed — alert paused</div></div>
+</div>""", unsafe_allow_html=True)
+            continue
+
+        reason_short = truncate_words(reasoning or "No engagement signal captured", 180)
+        meta_parts   = [x for x in [f"Age {age}" if age else "", gender, f"Week {week}"] if x]
+        risk_chips   = "".join(f'<span class="risk-chip orange">{shorten_signal(s)}</span>' for s in signals[:4]) \
+                       or '<span class="risk-chip yellow">Low engagement signals</span>'
+
+        st.markdown(f"""
+<div class="slip-detail-card">
+  <div class="slip-accent"></div>
+  <div class="slip-body">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <span class="slip-name">{name}</span>
+      <span class="severity-badge badge-slippage">Slippage</span>
+    </div>
+    <div class="slip-meta">{" · ".join(meta_parts)}</div>
+    <div class="slip-reason">{reason_short}</div>
+    <div class="risk-chips">{risk_chips}</div>
+  </div>
+</div>""", unsafe_allow_html=True)
+
+        sc1, sc2, sc3 = st.columns(3)
+        with sc1:
+            if st.button("📞 Check In", key=f"slip_ci_{i}", use_container_width=True, type="primary"):
+                st.session_state.selected_patient = name; st.session_state.view = "notes"; st.rerun()
+        with sc2:
+            if st.button("View Profile", key=f"slip_pr_{i}", use_container_width=True):
+                st.session_state.selected_patient = name; st.session_state.view = "profile"; st.rerun()
+        with sc3:
+            if st.button("😴 Snooze", key=f"slip_sn_{i}", use_container_width=True):
+                st.session_state.snooze_set.add(name); st.toast(f"😴 {name} snoozed"); st.rerun()
+
+
+# ── Morning brief ─────────────────────────────────────────────
+def render_morning_brief(r):
+    reviewed = st.session_state.reviewed_patients
+
+    urgent  = [p for p in r["auto_list"] if p.get("severity") == "High"   and p.get("name") not in reviewed]
+    watch   = [p for p in r["auto_list"] if p.get("severity") == "Medium" and p.get("name") not in reviewed]
+    routine = [p for p in r["auto_list"] if p.get("severity") == "Low" and not p.get("nudge_risk") and p.get("name") not in reviewed]
+
+    nudge_raw = r["nudge_list"] + [p for p in r["auto_list"] if p.get("severity") == "Low" and p.get("nudge_risk")]
+    seen, slippage = set(), []
+    for p in nudge_raw:
+        nm = p.get("name")
+        if nm not in seen and nm not in reviewed:
+            slippage.append(p); seen.add(nm)
+
+    queue    = [p for p in r["queue_list"] if p.get("name") not in reviewed]
+    on_track = r["on_track"]
+
+    today     = date.today()
+    today_str = f"{today.day} {today.strftime('%b %Y')}"
+
+    st.markdown(f"""
+<div class="brief-header">
+  <div class="brief-greeting">Coach Dashboard</div>
+  <div class="brief-title-row">
+    <span class="brief-title">Morning Brief</span>
+    <span class="brief-date">{today_str}</span>
+  </div>
+  <div class="summary-bar">
+    <div class="summary-pill pill-urgent"><div class="num">{len(urgent)}</div><div class="lbl">Urgent</div></div>
+    <div class="summary-pill pill-watch"><div class="num">{len(watch)}</div><div class="lbl">Watch</div></div>
+    <div class="summary-pill pill-routine"><div class="num">{len(on_track)}</div><div class="lbl">On Track</div></div>
+  </div>
+</div>""", unsafe_allow_html=True)
+
+    if urgent:
+        st.markdown('<div class="section-header"><span class="section-label">🔴 Urgent — Act Today</span></div>', unsafe_allow_html=True)
+        for i, p in enumerate(urgent):
+            render_patient_card(p, i, "urgent")
+
+    if watch:
+        st.markdown('<div class="section-header"><span class="section-label">🟡 Watch — Within 24h</span></div>', unsafe_allow_html=True)
+        for i, p in enumerate(watch):
+            render_patient_card(p, i, "watch")
+
+    if slippage:
+        count = len(slippage)
+        st.markdown(f"""
+<div class="slippage-banner">
+  <span style="font-size:18px">⚠️</span>
+  <span><strong>{count} patient{"s" if count>1 else ""}</strong> showing engagement drop — warm check-in recommended</span>
+</div>""", unsafe_allow_html=True)
+        if st.button("→ Open Slippage Alerts", key="brief_slip_nav", use_container_width=False):
+            st.session_state.view = "slippage"; st.rerun()
+        for i, p in enumerate(slippage):
+            render_slippage_card(p, i)
+
+    if routine:
+        st.markdown('<div class="section-header"><span class="section-label">🟢 Routine — Next Check-in</span></div>', unsafe_allow_html=True)
+        for i, p in enumerate(routine):
+            render_patient_card(p, i, "routine")
+
+    if on_track:
+        st.markdown('<div class="section-header"><span class="section-label">✅ On Track</span></div>', unsafe_allow_html=True)
+        for p in on_track:
+            n   = p.get("name","")
+            fbs = p.get("structured",{}).get("fbs_mgdl","")
+            fbs_txt = f"FBS {fbs} mg/dL · " if fbs else ""
+            st.markdown(f"""
+<div class="on-track-row">
+  <span style="font-size:16px">✅</span>
+  <div><div class="on-track-name">{n}</div><div class="on-track-sub">{fbs_txt}All logs complete</div></div>
+</div>""", unsafe_allow_html=True)
+
+    if queue:
+        st.markdown(f'<div class="section-header"><span class="section-label">🔵 Review Queue ({len(queue)})</span></div>', unsafe_allow_html=True)
+        with st.expander("Low confidence — apply clinical judgement"):
+            for i, p in enumerate(queue):
+                render_patient_card(p, i, "queue")
+
+    # ── Reviewed this session ─────────────────────────────────
+    all_p_flat = r["auto_list"] + r["queue_list"] + r["nudge_list"]
+    reviewed_list = [p for p in all_p_flat if p.get("name") in reviewed]
+    if reviewed_list:
+        with st.expander(f"✓ Reviewed this session ({len(reviewed_list)})"):
+            for p in reviewed_list:
+                n   = p.get("name","")
+                sev = sev_label(p.get("severity",""))
+                fb  = get_feedback_summary()
+                st.markdown(f"""
+<div class="reviewed-row">
+  <span>✓</span>
+  <span style="font-weight:600;color:#374151;">{n}</span>
+  <span style="color:#9CA3AF;">·</span>
+  <span>{sev}</span>
+  <span style="margin-left:auto;font-size:10px;color:#9CA3AF;">Reviewed</span>
+</div>""", unsafe_allow_html=True)
+
+    # ── Feedback precision ────────────────────────────────────
+    fb = get_feedback_summary()
+    if fb["total"] > 0:
+        with st.expander("📈 Feedback log"):
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Reviewed", fb["total"])
+            m2.metric("Correct 👍", fb["correct"])
+            m3.metric("Precision", f"{fb['precision']}%")
+            all_fb = get_all_feedback()
+            if all_fb:
+                for eid, entry in list(all_fb.items())[-6:]:
+                    emoji  = "👍" if entry["reaction"] == "correct" else "👎"
+                    reason = f" — {entry['wrong_reason']}" if entry.get("wrong_reason") else ""
+                    st.caption(f"{emoji} **{entry['patient_name']}** | {sev_label(entry['severity'])} | {entry['date']}{reason}")
+
+
+# ── Main render ───────────────────────────────────────────────
+if st.session_state.results:
+    v = st.session_state.view
+    if v == "profile" and st.session_state.selected_patient:
+        render_patient_profile()
+    elif v == "notes":
+        render_coach_notes()
+    elif v == "slippage":
+        render_slippage_page(st.session_state.results)
+    else:
+        render_morning_brief(st.session_state.results)
+
+elif st.session_state.data_loaded:
+    st.markdown("## 🩺 MadhuMitra")
+    st.divider()
     st.markdown("### Patient panel")
     try:
         filepath = "data/sample_patients.json" if st.session_state.demo_mode else None
         if filepath:
             preview_patients = load_patients(filepath)
-            preview_data = []
-            for p in preview_patients:
-                h = p.get("program_history", {})
-                s = p.get("structured", {})
-                comorbidities = h.get("comorbidities", {})
-                active = [k.replace("_"," ") for k,v in comorbidities.items() if v is True]
-                preview_data.append({
-                    "Name": p.get("name",""),
-                    "Age/Gender": f"{p.get('age','')}{p.get('gender','')}",
-                    "Week": h.get("week_number",""),
-                    "FBS": f"{s.get('fbs_mgdl','—')} mg/dL" if s.get('fbs_mgdl') else "No log",
-                    "Comorbidities": ", ".join(active[:2]) if active else "None"
-                })
             import pandas as pd
-            st.dataframe(pd.DataFrame(preview_data), use_container_width=True, hide_index=True)
-            st.caption(f"{len(preview_patients)} patients loaded · Click Run reasoning loop to analyse")
+            rows = []
+            for p in preview_patients:
+                ph = p.get("program_history", {})
+                ps = p.get("structured", {})
+                comorbidities = [k.replace("_"," ") for k,v in ph.get("comorbidities",{}).items() if v]
+                rows.append({
+                    "Name": p.get("name",""), "Age": p.get("age",""),
+                    "Week": ph.get("week_number",""),
+                    "FBS": f"{ps.get('fbs_mgdl','—')} mg/dL" if ps.get("fbs_mgdl") else "No log",
+                    "Comorbidities": ", ".join(comorbidities[:2]) if comorbidities else "None",
+                })
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            st.caption(f"{len(preview_patients)} patients loaded · Click **Run reasoning loop** to analyse")
     except Exception:
         pass
 
-elif st.session_state.results:
-    r = st.session_state.results
-    summary = r["summary"]
-    thresholds_data = get_thresholds()
-
-    # Route patients first — needed for accurate header counts
-    # Store raw patient data for detail panel
-    raw_filepath = "data/sample_patients.json" if st.session_state.demo_mode else None
-    raw_patients = {}
-    if raw_filepath:
-        try:
-            import json as _json
-            with open(raw_filepath) as f:
-                raw_data = _json.load(f)
-            for p in raw_data.get("patients", []):
-                raw_patients[p["name"]] = p
-        except Exception:
-            pass
-    st.session_state["raw_patients"] = raw_patients
-
-    # Route patients — deduplicate nudge list
-    alert_patients, followup_patients, new_dev_patients = [], [], []
-    nudge_names_already = set(p.get("name") for p in r["nudge_list"])
-
-    for p in r["auto_list"] + r["queue_list"]:
-        name = p.get("name")
-        severity = p.get("severity", "")
-        nudge = p.get("nudge_risk", False)
-        status = get_contact_status(name)
-
-        if severity == "Low" and nudge and name not in nudge_names_already:
-            r["nudge_list"].append(p)
-            nudge_names_already.add(name)
-            continue
-        elif severity == "Low" and nudge:
-            continue
-
-        if not status:
-            alert_patients.append(p)
-        else:
-            routing = should_alert(name, p.get("signals",[]),
-                                  p.get("severity"), thresholds_data)
-            if routing == "new_deviation_alert":
-                new_dev_patients.append(p)
-            elif routing == "followup":
-                followup_patients.append(p)
-            else:
-                alert_patients.append(p)
-
-    # Accurate counts matching tabs
-    total_alerts   = len(alert_patients) + len(new_dev_patients)
-    total_followup = len(followup_patients)
-    total_queue    = len([p for p in r["queue_list"]
-                         if not any(p.get("name")==fp.get("name")
-                                   for fp in followup_patients)])
-    total_ontrack  = len(r["on_track"])
-
-    # Severity breakdown within alerts (shown inside tab)
-    all_alert_patients = alert_patients + new_dev_patients
-    high_count = len([p for p in all_alert_patients if p.get("severity") == "High"])
-    med_count  = len([p for p in all_alert_patients if p.get("severity") == "Medium"])
-    low_count  = len([p for p in all_alert_patients if p.get("severity") == "Low"])
-
-    # Header — counts match tabs exactly
-    col_title, col_metrics = st.columns([2.5, 1.5])
-    with col_title:
-        st.markdown("## 🩺 MadhuMitra — Coach Dashboard")
-        st.caption(
-            f"Clinical Protocol Intelligence Layer · "
-            f"DiRECT/ADA Baseline v1.0 · {date.today().strftime('%d %B %Y')}"
-        )
-    with col_metrics:
-        st.markdown("")
-        st.markdown(
-            f"🚨 **{total_alerts}** alerts &nbsp;·&nbsp; "
-            f"📞 **{total_followup}** follow-up &nbsp;·&nbsp; "
-            f"✅ **{total_ontrack}** on track"
-        )
-        if summary["escalate"] > 0:
-            st.caption(f"🚨 {summary['escalate']} escalation(s) — see alert list")
-
-    st.divider()
-
-    # Tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        f"🚨 Alerts ({total_alerts})",
-        f"📞 Follow-up ({total_followup})",
-        f"🔍 Review ({total_queue})",
-        f"💡 Nudge · On track ({len(r['nudge_list'])+total_ontrack})",
-        "📈 Feedback"
-    ])
-
-    def render_tab(patients, card_type):
-        if st.session_state.mobile_view:
-            # Mobile: table + expand inline
-            col_headers = st.columns([2.5,1,3,1.5])
-            col_headers[0].caption("Patient")
-            col_headers[1].caption("Severity")
-            col_headers[2].caption("Key signals")
-            col_headers[3].caption("React")
-            render_table(patients, card_type)
-        else:
-            # Desktop: split view
-            selected = st.session_state.selected_patient
-            selected_patient_obj = next(
-                (p for p in patients if p.get("name") == selected), None
-            )
-            left, right = st.columns([1.2, 1])
-            with left:
-                col_h1, col_h2, col_h3, col_h4 = st.columns([2.5,1,3,1.5])
-                col_h1.caption("Patient")
-                col_h2.caption("Severity")
-                col_h3.caption("Key signals")
-                col_h4.caption("React")
-                render_table(patients, card_type)
-            with right:
-                render_detail(selected_patient_obj)
-
-    with tab1:
-        # Severity breakdown — matches the total shown in header
-        st.caption(
-            f"🔴 {high_count} High &nbsp;·&nbsp; "
-            f"🟡 {med_count} Medium &nbsp;·&nbsp; "
-            f"🟢 {low_count} Low &nbsp;·&nbsp; "
-            f"Act on these today"
-        )
-        if new_dev_patients:
-            st.warning(f"⚠️ {len(new_dev_patients)} patient(s) in cooling period have NEW deviations")
-            render_tab(new_dev_patients, "newdev")
-            st.divider()
-        if alert_patients:
-            render_tab(alert_patients, "alert")
-        elif not new_dev_patients:
-            st.success("No new alerts — all patients on track or in follow-up.")
-
-    with tab2:
-        st.caption("Contacted within cooling period — same deviation, stable")
-        if followup_patients:
-            render_tab(followup_patients, "followup")
-        else:
-            st.info("No patients in follow-up period.")
-
-    with tab3:
-        st.caption("Signals present but confidence is low — apply your clinical judgement")
-        queue = [p for p in r["queue_list"]
-                if not any(p.get("name")==fp.get("name") for fp in followup_patients)]
-        if queue:
-            render_tab(queue, "queue")
-        else:
-            st.success("No cases in the manual review queue.")
-
-    with tab4:
-        if r["nudge_list"]:
-            st.subheader("💡 Warm check-in recommended")
-            for p in r["nudge_list"]:
-                st.info(f"**{p.get('name')}** — {p.get('reasoning','')}")
-        st.subheader("✅ On track today")
-        for p in r["on_track"]:
-            st.success(f"**{p.get('name')}** — No deviations detected across all signals")
-        if not r["on_track"]:
-            st.caption("No patients fully on track today.")
-
-    with tab5:
-        st.subheader("📊 Coach feedback log")
-        fb = get_feedback_summary()
-        if fb["total"] > 0:
-            m1,m2,m3 = st.columns(3)
-            m1.metric("Alerts reviewed", fb["total"])
-            m2.metric("Correct 👍", fb["correct"])
-            m3.metric("Precision", f"{fb['precision']}%")
-            if fb["wrong_reasons"]:
-                st.markdown("**Common correction reasons:**")
-                for r_name, count in fb["wrong_reasons"].items():
-                    st.caption(f"· {r_name}: {count}x")
-            all_fb = get_all_feedback()
-            if all_fb:
-                st.markdown("**Recent feedback:**")
-                for eid, entry in list(all_fb.items())[-8:]:
-                    emoji = "👍" if entry["reaction"]=="correct" else "👎"
-                    reason = f" — {entry['wrong_reason']}" if entry.get("wrong_reason") else ""
-                    st.caption(
-                        f"{emoji} **{entry['patient_name']}** | "
-                        f"{entry['severity']} | {entry['date']}{reason}"
-                    )
-        else:
-            st.info("No feedback yet. Use 👍/👎 on alerts to track precision.")
-
 else:
-    # Empty state
     st.markdown("""
-    <div style="text-align:center;padding:80px 20px;color:#9B9B94;">
-        <div style="font-size:56px;margin-bottom:16px;">🩺</div>
-        <p style="font-size:16px;margin-bottom:6px;color:#6B6B65;">Ready to analyse your patient panel</p>
-        <p style="font-size:13px;">Load sample patients or upload a file,<br>then click <strong>Run reasoning loop</strong></p>
-    </div>
-    """, unsafe_allow_html=True)
+<div style="text-align:center;padding:80px 20px;color:#9B9B94;">
+  <div style="font-size:56px;margin-bottom:16px;">🩺</div>
+  <p style="font-size:16px;margin-bottom:6px;color:#6B6B65;">Ready to analyse your patient panel</p>
+  <p style="font-size:13px;">Load sample patients or upload a file,<br>then click <strong>Run reasoning loop</strong></p>
+</div>
+""", unsafe_allow_html=True)

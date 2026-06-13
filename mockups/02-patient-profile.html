@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MadhuMitra — Patient Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-600: #0D9488;
+    --teal-500: #14B8A6;
+    --teal-100: #CCFBF1;
+    --teal-50:  #F0FDFA;
+    --urgent:   #EF4444;
+    --urgent-bg:#FEF2F2;
+    --watch:    #F59E0B;
+    --watch-bg: #FFFBEB;
+    --routine:  #10B981;
+    --routine-bg:#ECFDF5;
+    --gray-900: #111827;
+    --gray-700: #374151;
+    --gray-600: #4B5563;
+    --gray-500: #6B7280;
+    --gray-400: #9CA3AF;
+    --gray-300: #D1D5DB;
+    --gray-200: #E5E7EB;
+    --gray-100: #F3F4F6;
+    --gray-50:  #F9FAFB;
+    --white:    #FFFFFF;
+    --radius:   10px;
+    --shadow:   0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #F0FDFA;
+    display: flex;
+    justify-content: center;
+    padding: 0 0 40px;
+  }
+
+  .phone-frame {
+    width: 390px;
+    min-height: 100vh;
+    background: var(--gray-50);
+  }
+
+  /* Status bar */
+  .status-bar {
+    background: var(--teal-600);
+    padding: 12px 20px 8px;
+    display: flex;
+    justify-content: space-between;
+    color: white;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  /* Header */
+  .header {
+    background: var(--teal-600);
+    padding: 4px 16px 16px;
+    color: white;
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .back-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    text-decoration: none;
+    color: white;
+  }
+  .header h1 { font-size: 17px; font-weight: 700; flex: 1; }
+  .header-badge {
+    background: rgba(239,68,68,0.25);
+    border: 1px solid rgba(239,68,68,0.4);
+    color: #FCA5A5;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
+
+  /* Patient hero */
+  .patient-hero {
+    background: rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .hero-info { flex: 1; }
+  .hero-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+  .hero-meta { font-size: 11px; opacity: 0.8; }
+
+  /* Phase bar */
+  .phase-section {
+    margin: 12px 16px 0;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px;
+  }
+  .phase-label { font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .phase-track {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .phase-seg {
+    height: 6px;
+    border-radius: 3px;
+    flex: 1;
+    background: var(--gray-200);
+  }
+  .phase-seg.done { background: var(--teal-500); }
+  .phase-seg.current { background: var(--teal-600); }
+  .phase-info { display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-500); }
+  .phase-name { font-weight: 600; color: var(--teal-600); }
+
+  /* Alert banner */
+  .alert-banner {
+    margin: 10px 16px 0;
+    background: var(--urgent-bg);
+    border: 1px solid #FECACA;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #991B1B;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  /* Section cards */
+  .card {
+    margin: 10px 16px 0;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-900);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .card-link { font-size: 11px; color: var(--teal-600); font-weight: 500; text-decoration: none; }
+
+  /* Glucose chart */
+  .glucose-chart {
+    padding: 14px;
+  }
+  .chart-title-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .chart-stat { text-align: center; }
+  .chart-stat .val { font-size: 18px; font-weight: 700; color: var(--gray-900); }
+  .chart-stat .lbl { font-size: 10px; color: var(--gray-500); margin-top: 1px; }
+  .chart-stat.red .val { color: var(--urgent); }
+  .chart-stat.green .val { color: var(--routine); }
+  .chart-stat.amber .val { color: var(--watch); }
+
+  /* Mini bar chart — 30 day glucose */
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 60px;
+    padding: 0 2px;
+    margin-bottom: 6px;
+  }
+  .bar {
+    flex: 1;
+    border-radius: 2px 2px 0 0;
+    min-height: 4px;
+    transition: opacity 0.2s;
+  }
+  .bar.normal  { background: var(--teal-500); }
+  .bar.elevated{ background: var(--watch); }
+  .bar.high    { background: var(--urgent); }
+  .bar.today   { background: var(--teal-600); outline: 2px solid var(--teal-600); }
+  .chart-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--gray-400);
+    padding: 0 2px;
+  }
+
+  /* Data grid */
+  .data-grid { padding: 12px 14px; }
+  .data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 12px;
+  }
+  .data-row:last-child { border-bottom: none; }
+  .data-key { color: var(--gray-600); display: flex; align-items: center; gap: 6px; }
+  .data-val { font-weight: 600; color: var(--gray-900); }
+  .data-val.ok     { color: var(--routine); }
+  .data-val.warn   { color: var(--watch); }
+  .data-val.danger { color: var(--urgent); }
+  .data-sub { font-size: 10px; color: var(--gray-400); font-weight: 400; }
+
+  /* Log frequency */
+  .log-freq {
+    padding: 12px 14px;
+  }
+  .freq-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .freq-dot {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+  }
+  .freq-dot.logged { background: var(--teal-500); }
+  .freq-dot.missed { background: var(--gray-200); }
+  .freq-dot.partial{ background: var(--teal-100); }
+  .freq-label { font-size: 10px; color: var(--gray-500); margin-top: 6px; display: flex; justify-content: space-between; }
+
+  /* Coach notes history */
+  .notes-list { padding: 10px 14px 14px; }
+  .note-item {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .note-item:last-child { border-bottom: none; }
+  .note-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .note-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 20px;
+  }
+  .tag-called    { background: #EFF6FF; color: #1E40AF; }
+  .tag-messaged  { background: #F5F3FF; color: #5B21B6; }
+  .tag-escalated { background: var(--urgent-bg); color: var(--urgent); }
+  .note-date { font-size: 10px; color: var(--gray-400); }
+  .note-text { font-size: 12px; color: var(--gray-700); line-height: 1.4; }
+
+  /* Action row */
+  .action-row {
+    padding: 14px 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .btn {
+    flex: 1;
+    padding: 11px 0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+  }
+  .btn-primary { background: var(--teal-600); color: white; }
+  .btn-secondary { background: var(--white); color: var(--gray-700); border: 1px solid var(--gray-300); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    padding: 8px 0 12px;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    font-size: 10px; color: var(--gray-400);
+    font-weight: 500; cursor: pointer; padding: 4px 0;
+  }
+  .nav-item.active { color: var(--teal-600); }
+  .nav-icon { font-size: 20px; }
+
+  .watermark { text-align: center; padding: 8px; font-size: 10px; color: var(--gray-400); border-top: 1px solid var(--gray-100); }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+
+  <div class="status-bar">
+    <span>7:41 AM</span>
+    <span>&#9679;&#9679;&#9679; 4G</span>
+  </div>
+
+  <div class="header">
+    <div class="header-row">
+      <a href="01-morning-brief.html" class="back-btn">&#8592;</a>
+      <h1>Patient Profile</h1>
+      <span class="header-badge">Urgent</span>
+    </div>
+    <div class="patient-hero">
+      <div class="avatar">RI</div>
+      <div class="hero-info">
+        <div class="hero-name">Ramesh Iyer</div>
+        <div class="hero-meta">Age 52 · Male · Hypertension · Fatty Liver</div>
+        <div class="hero-meta" style="margin-top:3px;">DiRECT Protocol · Week 8 of 24</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert banner -->
+  <div class="alert-banner">
+    <span>&#128680;</span>
+    <span><strong>Urgent:</strong> FBS 218 mg/dL, medication missed (Day 2), BP 148/94. Same-day coach contact required.</span>
+  </div>
+
+  <!-- Protocol phase -->
+  <div class="phase-section">
+    <div class="phase-label">Protocol Progress</div>
+    <div class="phase-track">
+      <div class="phase-seg done"></div>
+      <div class="phase-seg done"></div>
+      <div class="phase-seg done"></div>
+      <div class="phase-seg done"></div>
+      <div class="phase-seg done"></div>
+      <div class="phase-seg done"></div>
+      <div class="phase-seg done"></div>
+      <div class="phase-seg current"></div>
+      <div class="phase-seg"></div>
+      <div class="phase-seg"></div>
+      <div class="phase-seg"></div>
+      <div class="phase-seg"></div>
+    </div>
+    <div class="phase-info">
+      <span class="phase-name">Phase 2 — Stabilisation</span>
+      <span>Wk 8 / 24 · 33%</span>
+    </div>
+  </div>
+
+  <!-- 30-day glucose trend -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">30-Day Glucose Trend</span>
+      <span style="font-size:11px; color:var(--urgent); font-weight:600;">Stable-high</span>
+    </div>
+    <div class="glucose-chart">
+      <div class="chart-title-row">
+        <div class="chart-stat red">
+          <div class="val">218</div>
+          <div class="lbl">Today (mg/dL)</div>
+        </div>
+        <div class="chart-stat amber">
+          <div class="val">178</div>
+          <div class="lbl">7-day avg</div>
+        </div>
+        <div class="chart-stat">
+          <div class="val">162</div>
+          <div class="lbl">30-day avg</div>
+        </div>
+        <div class="chart-stat">
+          <div class="val">242</div>
+          <div class="lbl">At intake</div>
+        </div>
+      </div>
+      <!-- Simulated bar chart -->
+      <div class="bar-chart">
+        <div class="bar normal"  style="height:52%"></div>
+        <div class="bar normal"  style="height:55%"></div>
+        <div class="bar normal"  style="height:48%"></div>
+        <div class="bar elevated"style="height:60%"></div>
+        <div class="bar normal"  style="height:53%"></div>
+        <div class="bar normal"  style="height:50%"></div>
+        <div class="bar normal"  style="height:46%"></div>
+        <div class="bar elevated"style="height:62%"></div>
+        <div class="bar elevated"style="height:65%"></div>
+        <div class="bar normal"  style="height:51%"></div>
+        <div class="bar normal"  style="height:47%"></div>
+        <div class="bar normal"  style="height:53%"></div>
+        <div class="bar elevated"style="height:70%"></div>
+        <div class="bar elevated"style="height:68%"></div>
+        <div class="bar normal"  style="height:55%"></div>
+        <div class="bar normal"  style="height:50%"></div>
+        <div class="bar elevated"style="height:66%"></div>
+        <div class="bar elevated"style="height:72%"></div>
+        <div class="bar elevated"style="height:74%"></div>
+        <div class="bar elevated"style="height:71%"></div>
+        <div class="bar normal"  style="height:53%"></div>
+        <div class="bar elevated"style="height:63%"></div>
+        <div class="bar elevated"style="height:75%"></div>
+        <div class="bar elevated"style="height:78%"></div>
+        <div class="bar high"    style="height:82%"></div>
+        <div class="bar elevated"style="height:70%"></div>
+        <div class="bar high"    style="height:86%"></div>
+        <div class="bar high"    style="height:88%"></div>
+        <div class="bar high"    style="height:85%"></div>
+        <div class="bar high today" style="height:95%"></div>
+      </div>
+      <div class="chart-axis">
+        <span>May 7</span>
+        <span>May 14</span>
+        <span>May 21</span>
+        <span>May 28</span>
+        <span>Today</span>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:var(--gray-500);">
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--teal-500);margin-right:3px;"></span>Normal</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--watch);margin-right:3px;"></span>Elevated</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--urgent);margin-right:3px;"></span>High</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's logs -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Today's Log Summary</span>
+      <span style="font-size:11px;color:var(--gray-400);">6 Jun, 6:12 AM</span>
+    </div>
+    <div class="data-grid">
+      <div class="data-row">
+        <span class="data-key">&#128197; Fasting Glucose</span>
+        <span class="data-val danger">218 mg/dL <span class="data-sub">target &lt;120</span></span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">&#128138; Medication</span>
+        <span class="data-val danger">Missed &#9747;</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">&#9889; Exercise</span>
+        <span class="data-val warn">0 min <span class="data-sub">target 30 min</span></span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">&#128564; Sleep</span>
+        <span class="data-val warn">4.5 hrs <span class="data-sub">target 7h</span></span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">&#129504; Stress</span>
+        <span class="data-val danger">5/5 <span class="data-sub">3rd consecutive day</span></span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">&#128139; Blood Pressure</span>
+        <span class="data-val danger">148/94 mmHg</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">&#127858; Carbs</span>
+        <span class="data-val warn">182g <span class="data-sub">target 80g</span></span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">&#129385; Protein</span>
+        <span class="data-val warn">52g <span class="data-sub">target 95g</span></span>
+      </div>
+    </div>
+    <div style="padding:0 14px 12px;">
+      <div style="background:var(--gray-100);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--gray-600);font-style:italic;">"Feeling very tired and stressed. Work has been very demanding this week."</div>
+    </div>
+  </div>
+
+  <!-- Logging frequency (last 30 days) -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Logging Frequency — 30 Days</span>
+      <span style="font-size:11px;color:var(--watch);font-weight:600;">73%</span>
+    </div>
+    <div class="log-freq">
+      <div class="freq-row">
+        <!-- 30 days of dots: logged=teal, partial=light, missed=gray -->
+        <div class="freq-dot logged"></div><div class="freq-dot logged"></div><div class="freq-dot logged"></div><div class="freq-dot missed"></div><div class="freq-dot logged"></div>
+        <div class="freq-dot logged"></div><div class="freq-dot partial"></div><div class="freq-dot logged"></div><div class="freq-dot logged"></div><div class="freq-dot missed"></div>
+        <div class="freq-dot logged"></div><div class="freq-dot logged"></div><div class="freq-dot logged"></div><div class="freq-dot missed"></div><div class="freq-dot logged"></div>
+        <div class="freq-dot logged"></div><div class="freq-dot logged"></div><div class="freq-dot partial"></div><div class="freq-dot missed"></div><div class="freq-dot logged"></div>
+        <div class="freq-dot logged"></div><div class="freq-dot missed"></div><div class="freq-dot logged"></div><div class="freq-dot logged"></div><div class="freq-dot partial"></div>
+        <div class="freq-dot logged"></div><div class="freq-dot logged"></div><div class="freq-dot missed"></div><div class="freq-dot missed"></div><div class="freq-dot logged" style="outline:2px solid var(--teal-600);"></div>
+      </div>
+      <div class="freq-label">
+        <span>May 7</span>
+        <span style="display:flex;gap:8px;">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--teal-500);"></span> Logged</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--teal-100);"></span> Partial</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--gray-200);"></span> Missed</span>
+        </span>
+        <span>Today</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent food logs -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Recent Food Logs</span>
+      <a href="03-food-log-detail.html" class="card-link">See detail &rarr;</a>
+    </div>
+    <div class="data-grid">
+      <div class="data-row">
+        <span class="data-key">Yesterday dinner</span>
+        <span class="data-val warn">3 chapati + dal</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">Yesterday lunch</span>
+        <span class="data-val">Rice + sambar + rasam</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">Yesterday breakfast</span>
+        <span class="data-val">Idli sambar (4 pcs)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coach interaction history -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Coach Notes History</span>
+      <a href="06-coach-notes.html" class="card-link">Add note</a>
+    </div>
+    <div class="notes-list">
+      <div class="note-item">
+        <div class="note-meta">
+          <span class="note-tag tag-called">Called</span>
+          <span class="note-date">Jun 3, 2026</span>
+        </div>
+        <div class="note-text">Discussed work stress. Patient acknowledged missing medication on Mon-Tue. Reminded about importance of consistency. Agreed to set phone alarm.</div>
+      </div>
+      <div class="note-item">
+        <div class="note-meta">
+          <span class="note-tag tag-messaged">Messaged</span>
+          <span class="note-date">May 28, 2026</span>
+        </div>
+        <div class="note-text">Sent meal plan reminder via WhatsApp. Patient confirmed receipt. FBS improving — 142 that day.</div>
+      </div>
+      <div class="note-item">
+        <div class="note-meta">
+          <span class="note-tag tag-escalated">Escalated</span>
+          <span class="note-date">May 15, 2026</span>
+        </div>
+        <div class="note-text">BP reading 158/96 for 3 consecutive days. Escalated to Dr. Venkataraman. Doctor adjusted medication dosage.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="action-row">
+    <button class="btn btn-primary" onclick="window.location.href='06-coach-notes.html'">&#128203; Add Note</button>
+    <button class="btn btn-secondary">&#128222; Mark Contacted</button>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="window.location.href='01-morning-brief.html'"><span class="nav-icon">&#127968;</span><span>Brief</span></div>
+    <div class="nav-item active"><span class="nav-icon">&#128101;</span><span>Patients</span></div>
+    <div class="nav-item" onclick="window.location.href='04-slippage-alerts.html'"><span class="nav-icon">&#9888;</span><span>Alerts</span></div>
+    <div class="nav-item" onclick="window.location.href='06-coach-notes.html'"><span class="nav-icon">&#128203;</span><span>Notes</span></div>
+    <div class="nav-item" onclick="window.location.href='05-operator-dashboard.html'"><span class="nav-icon">&#128200;</span><span>Program</span></div>
+  </div>
+
+  <div class="watermark">MadhuMitra · Screen 2 of 7 · Patient Profile · v1.0 · <a href="index.html" style="color:var(--teal-600);">All Screens</a></div>
+
+</div>
+</body>
+</html>

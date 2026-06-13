@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MadhuMitra — Operator Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-700: #0F766E;
+    --teal-600: #0D9488;
+    --teal-500: #14B8A6;
+    --teal-100: #CCFBF1;
+    --teal-50:  #F0FDFA;
+    --urgent:   #EF4444;
+    --urgent-bg:#FEF2F2;
+    --watch:    #F59E0B;
+    --watch-bg: #FFFBEB;
+    --routine:  #10B981;
+    --routine-bg:#ECFDF5;
+    --indigo:   #4F46E5;
+    --indigo-bg:#EEF2FF;
+    --gray-900: #111827;
+    --gray-700: #374151;
+    --gray-600: #4B5563;
+    --gray-500: #6B7280;
+    --gray-400: #9CA3AF;
+    --gray-300: #D1D5DB;
+    --gray-200: #E5E7EB;
+    --gray-100: #F3F4F6;
+    --gray-50:  #F9FAFB;
+    --white:    #FFFFFF;
+    --radius:   10px;
+    --shadow:   0 1px 3px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--teal-50);
+    min-height: 100vh;
+  }
+
+  /* Desktop layout */
+  .dashboard-shell {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  /* Top nav bar */
+  .topbar {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 16px; font-weight: 700; color: var(--teal-600);
+    text-decoration: none;
+  }
+  .brand-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--teal-500);
+  }
+  .topbar-sep { flex: 1; }
+  .topbar-nav {
+    display: flex; gap: 6px;
+  }
+  .tnav-item {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    text-decoration: none;
+    border: 1px solid transparent;
+  }
+  .tnav-item.active {
+    background: var(--teal-50); color: var(--teal-600);
+    border-color: var(--teal-100);
+  }
+  .tnav-item:hover { background: var(--gray-50); }
+  .topbar-user {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--gray-600);
+  }
+  .user-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--teal-500);
+    color: white; font-weight: 700; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Page header */
+  .page-header {
+    padding: 28px 0 20px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  .page-header h1 { font-size: 22px; font-weight: 700; color: var(--gray-900); }
+  .page-header p { font-size: 13px; color: var(--gray-500); margin-top: 4px; }
+  .header-actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer;
+  }
+  .btn-primary { background: var(--teal-600); color: white; }
+  .btn-secondary { background: var(--white); color: var(--gray-700); border: 1px solid var(--gray-300); }
+
+  /* Hero metric */
+  .hero-metric {
+    background: linear-gradient(135deg, var(--teal-700) 0%, var(--teal-500) 100%);
+    border-radius: 14px;
+    padding: 24px 28px;
+    color: white;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .hero-icon { font-size: 40px; opacity: 0.9; }
+  .hero-content { flex: 1; }
+  .hero-number { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+  .hero-label { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+  .hero-sub { font-size: 12px; opacity: 0.7; margin-top: 6px; }
+  .hero-change {
+    background: rgba(255,255,255,0.18);
+    border-radius: 8px; padding: 10px 16px;
+    text-align: center;
+  }
+  .hero-change .val { font-size: 22px; font-weight: 700; }
+  .hero-change .lbl { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+
+  /* KPI grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .kpi-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    border: 1px solid var(--gray-200);
+  }
+  .kpi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .kpi-icon { font-size: 18px; }
+  .kpi-change-up   { font-size: 11px; font-weight: 600; color: var(--routine); background: var(--routine-bg); padding: 2px 7px; border-radius: 20px; }
+  .kpi-change-down { font-size: 11px; font-weight: 600; color: var(--urgent); background: var(--urgent-bg); padding: 2px 7px; border-radius: 20px; }
+  .kpi-change-neu  { font-size: 11px; font-weight: 600; color: var(--gray-500); background: var(--gray-100); padding: 2px 7px; border-radius: 20px; }
+  .kpi-value { font-size: 26px; font-weight: 800; color: var(--gray-900); letter-spacing: -0.5px; }
+  .kpi-label { font-size: 12px; color: var(--gray-500); margin-top: 3px; }
+  .kpi-sub   { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+  /* Charts row */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .chart-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-200);
+    padding: 18px;
+  }
+  .chart-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .chart-card-title { font-size: 13px; font-weight: 700; color: var(--gray-900); }
+  .chart-card-sub   { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+  .chart-legend { display: flex; gap: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--gray-500); }
+  .legend-dot  { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Line chart simulation */
+  .line-chart {
+    position: relative;
+    height: 140px;
+    padding: 0 4px;
+    margin-bottom: 8px;
+  }
+  .lc-grid {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .lc-gridline {
+    width: 100%; border-top: 1px dashed var(--gray-100);
+    position: relative;
+  }
+  .lc-gridline-label {
+    position: absolute; left: 0; top: -8px;
+    font-size: 9px; color: var(--gray-400);
+  }
+  .lc-bars {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: flex-end; gap: 2px; height: 100%;
+    padding: 0 2px;
+  }
+  .lc-bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .lc-bar { width: 100%; border-radius: 2px 2px 0 0; }
+  .lc-xaxis { display: flex; justify-content: space-between; font-size: 9px; color: var(--gray-400); padding: 4px 2px 0; }
+
+  /* Compliance donut simulation */
+  .donut-wrap {
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 8px; padding: 10px 0;
+  }
+  .donut {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: conic-gradient(var(--teal-500) 0% 78%, var(--watch) 78% 90%, var(--gray-200) 90% 100%);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .donut-inner {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: var(--white);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .donut-val { font-size: 20px; font-weight: 800; color: var(--gray-900); }
+  .donut-lbl { font-size: 9px; color: var(--gray-500); }
+  .donut-legend { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+  .dl-item { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--gray-600); }
+  .dl-dot { width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+
+  /* At-risk table */
+  .atrisk-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .atrisk-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .atrisk-title { font-size: 13px; font-weight: 700; color: var(--gray-900); }
+  .atrisk-badge {
+    font-size: 11px; font-weight: 700;
+    background: var(--urgent-bg); color: var(--urgent);
+    padding: 2px 9px; border-radius: 20px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    padding: 8px 18px; text-align: left;
+    font-size: 11px; font-weight: 600;
+    color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+  }
+  tbody td {
+    padding: 11px 18px; font-size: 13px;
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--gray-700);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--gray-50); }
+  .risk-pill {
+    font-size: 11px; font-weight: 700;
+    padding: 2px 9px; border-radius: 20px;
+    display: inline-block;
+  }
+  .coach-name { font-size: 12px; color: var(--gray-500); }
+  .action-link {
+    font-size: 12px; color: var(--teal-600); font-weight: 600; text-decoration: none; cursor: pointer;
+  }
+
+  /* Coach performance */
+  .coach-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .coach-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-200);
+    padding: 16px;
+  }
+  .coach-card-title { font-size: 12px; font-weight: 700; color: var(--gray-900); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+  .coach-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0; border-bottom: 1px solid var(--gray-100);
+  }
+  .coach-row:last-child { border-bottom: none; }
+  .coach-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--teal-100); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--teal-700); }
+  .coach-name-main { font-size: 13px; font-weight: 600; color: var(--gray-800, #1F2937); flex: 1; }
+  .coach-stat { font-size: 12px; font-weight: 600; color: var(--gray-900); }
+  .coach-sub  { font-size: 10px; color: var(--gray-400); }
+  .bar-mini   { height: 4px; border-radius: 2px; background: var(--teal-500); margin-top: 2px; }
+
+  .watermark { text-align: center; padding: 12px; font-size: 11px; color: var(--gray-400); border-top: 1px solid var(--gray-100); margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<!-- Top nav -->
+<div class="topbar">
+  <a class="brand" href="index.html">
+    <div class="brand-dot"></div>
+    MadhuMitra
+  </a>
+  <div class="topbar-nav">
+    <a class="tnav-item" href="01-morning-brief.html">Morning Brief</a>
+    <a class="tnav-item" href="02-patient-profile.html">Patients</a>
+    <a class="tnav-item" href="04-slippage-alerts.html">Slippage</a>
+    <a class="tnav-item active" href="#">Operator Dashboard</a>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-user">
+    <div class="user-avatar">SR</div>
+    <span>Santosh Rao <span style="color:var(--gray-400);">· Program Director</span></span>
+  </div>
+</div>
+
+<div class="dashboard-shell">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <h1>Program Overview</h1>
+      <p>DiRECT Diabetes Reversal Cohort · June 2026 · 42 active patients · 4 coaches</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary">&#128190; Export Report</button>
+      <button class="btn btn-primary">&#128197; This Week: Jun 2–6</button>
+    </div>
+  </div>
+
+  <!-- Hero metric — time saved -->
+  <div class="hero-metric">
+    <div class="hero-icon">&#9200;</div>
+    <div class="hero-content">
+      <div class="hero-number">14.2 hrs</div>
+      <div class="hero-label">Recaptured by your coaching team this month</div>
+      <div class="hero-sub">vs. manual review — equivalent to 2 additional full coaching days</div>
+    </div>
+    <div class="hero-change">
+      <div class="val">+38%</div>
+      <div class="lbl">vs last month</div>
+    </div>
+    <div class="hero-change" style="margin-left:8px;">
+      <div class="val">3.5 hrs</div>
+      <div class="lbl">this week</div>
+    </div>
+  </div>
+
+  <!-- KPI grid -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-icon">&#9200;</span>
+        <span class="kpi-change-up">&#8595; 18%</span>
+      </div>
+      <div class="kpi-value">6.4 min</div>
+      <div class="kpi-label">Avg. morning review time</div>
+      <div class="kpi-sub">vs 7.8 min last week</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-icon">&#128101;</span>
+        <span class="kpi-change-up">&#8593; 12%</span>
+      </div>
+      <div class="kpi-value">4.2</div>
+      <div class="kpi-label">Patients per coach-hour</div>
+      <div class="kpi-sub">vs 3.7 last week</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-icon">&#128308;</span>
+        <span class="kpi-change-down">&#8593; 2</span>
+      </div>
+      <div class="kpi-value">7</div>
+      <div class="kpi-label">At-risk patients today</div>
+      <div class="kpi-sub">3 urgent · 4 watch · +2 vs yesterday</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-icon">&#128203;</span>
+        <span class="kpi-change-up">&#8593; 5%</span>
+      </div>
+      <div class="kpi-value">78%</div>
+      <div class="kpi-label">Logging compliance (30d)</div>
+      <div class="kpi-sub">vs 73% last month</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="charts-row">
+    <!-- 30-day cohort glucose trend -->
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">30-Day Cohort Glucose Trend (Average FBS)</div>
+          <div class="chart-card-sub">All 42 patients · DiRECT Protocol · target &lt;100 mg/dL</div>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--teal-500);"></span>Avg FBS</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--gray-300);border:1px dashed;"></span>Target</span>
+        </div>
+      </div>
+      <div class="line-chart">
+        <div class="lc-grid">
+          <div class="lc-gridline"><span class="lc-gridline-label">200</span></div>
+          <div class="lc-gridline"><span class="lc-gridline-label">150</span></div>
+          <div class="lc-gridline"><span class="lc-gridline-label">100</span></div>
+          <div class="lc-gridline"></div>
+        </div>
+        <div class="lc-bars">
+          <!-- 30 bars representing daily avg FBS, descending trend with variation -->
+          <div class="lc-bar-group"><div class="lc-bar" style="height:86%;background:var(--urgent);opacity:0.7;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:84%;background:var(--urgent);opacity:0.7;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:85%;background:var(--urgent);opacity:0.7;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:82%;background:var(--urgent);opacity:0.7;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:80%;background:var(--watch);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:79%;background:var(--watch);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:76%;background:var(--watch);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:75%;background:var(--watch);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:77%;background:var(--watch);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:73%;background:var(--watch);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:71%;background:var(--watch);opacity:0.7;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:70%;background:var(--watch);opacity:0.7;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:68%;background:var(--watch);opacity:0.7;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:67%;background:var(--watch);opacity:0.7;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:65%;background:var(--watch);opacity:0.7;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:63%;background:var(--teal-500);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:62%;background:var(--teal-500);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:63%;background:var(--teal-500);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:60%;background:var(--teal-500);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:58%;background:var(--teal-500);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:59%;background:var(--teal-500);opacity:0.8;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:57%;background:var(--teal-500);opacity:0.9;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:55%;background:var(--teal-500);opacity:0.9;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:56%;background:var(--teal-500);opacity:0.9;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:54%;background:var(--teal-500);opacity:0.9;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:53%;background:var(--teal-500);opacity:0.9;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:55%;background:var(--teal-500);opacity:0.9;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:52%;background:var(--teal-500);opacity:0.9;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:53%;background:var(--teal-500);opacity:0.9;"></div></div>
+          <div class="lc-bar-group"><div class="lc-bar" style="height:54%;background:var(--teal-600);outline:2px solid var(--teal-600);opacity:1;"></div></div>
+        </div>
+      </div>
+      <div class="lc-xaxis">
+        <span>May 7</span><span>May 14</span><span>May 21</span><span>May 28</span><span>Jun 5</span><span>Today</span>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--teal-600);font-weight:600;">
+        &#8595; Avg FBS down from 186 &#8594; 142 mg/dL over 30 days &nbsp;·&nbsp;
+        <span style="color:var(--gray-500);font-weight:400;">9 patients below 120 target (21%)</span>
+      </div>
+    </div>
+
+    <!-- Logging compliance donut -->
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Logging Compliance</div>
+          <div class="chart-card-sub">Last 30 days · All patients</div>
+        </div>
+      </div>
+      <div class="donut-wrap">
+        <div class="donut">
+          <div class="donut-inner">
+            <div class="donut-val">78%</div>
+            <div class="donut-lbl">compliant</div>
+          </div>
+        </div>
+        <div class="donut-legend">
+          <div class="dl-item">
+            <span style="display:flex;align-items:center;"><span class="dl-dot" style="background:var(--teal-500);"></span>Full logs (78%)</span>
+            <span style="font-weight:600;">33 patients</span>
+          </div>
+          <div class="dl-item">
+            <span style="display:flex;align-items:center;"><span class="dl-dot" style="background:var(--watch);"></span>Partial logs (12%)</span>
+            <span style="font-weight:600;">5 patients</span>
+          </div>
+          <div class="dl-item">
+            <span style="display:flex;align-items:center;"><span class="dl-dot" style="background:var(--gray-200);"></span>Missed (10%)</span>
+            <span style="font-weight:600;">4 patients</span>
+          </div>
+        </div>
+        <div style="width:100%;margin-top:8px;background:var(--teal-50);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--teal-700);">
+          &#8593; +5% vs last month (73%). Top compliant: Priya — 98%
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- At-risk patient table -->
+  <div class="atrisk-card">
+    <div class="atrisk-header">
+      <span class="atrisk-title">At-Risk Patients — Today</span>
+      <span class="atrisk-badge">7 patients flagged</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Risk Level</th>
+          <th>Flag Reason</th>
+          <th>Coach</th>
+          <th>Last Contact</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Ramesh Iyer</strong><br><span class="coach-name">52M · Wk 8</span></td>
+          <td><span class="risk-pill" style="background:var(--urgent-bg);color:var(--urgent);">Urgent</span></td>
+          <td style="font-size:12px;">FBS 218 · Meds missed · BP 148/94</td>
+          <td><span class="coach-name">Priya Chandran</span></td>
+          <td style="font-size:12px;color:var(--gray-500);">Jun 3</td>
+          <td><a class="action-link" href="02-patient-profile.html">View</a></td>
+        </tr>
+        <tr>
+          <td><strong>Sunita Kulkarni</strong><br><span class="coach-name">47F · Wk 12</span></td>
+          <td><span class="risk-pill" style="background:var(--urgent-bg);color:var(--urgent);">Urgent</span></td>
+          <td style="font-size:12px;">Tier 1: blurry vision + foamy urine</td>
+          <td><span class="coach-name">Ravi Menon</span></td>
+          <td style="font-size:12px;color:var(--urgent);">Not contacted</td>
+          <td><a class="action-link" href="02-patient-profile.html">View</a></td>
+        </tr>
+        <tr>
+          <td><strong>Deepak Verma</strong><br><span class="coach-name">38M · Wk 5</span></td>
+          <td><span class="risk-pill" style="background:var(--urgent-bg);color:var(--urgent);">Urgent</span></td>
+          <td style="font-size:12px;">Stress 5/5 ×3 · FBS 165 · All cravings</td>
+          <td><span class="coach-name">Priya Chandran</span></td>
+          <td style="font-size:12px;color:var(--gray-500);">Jun 5</td>
+          <td><a class="action-link" href="02-patient-profile.html">View</a></td>
+        </tr>
+        <tr>
+          <td><strong>Meena Nair</strong><br><span class="coach-name">44F · Wk 3</span></td>
+          <td><span class="risk-pill" style="background:var(--watch-bg);color:#92400E;">Watch</span></td>
+          <td style="font-size:12px;">Carbs 240g vs 80g target</td>
+          <td><span class="coach-name">Anitha Pillai</span></td>
+          <td style="font-size:12px;color:var(--gray-500);">Jun 4</td>
+          <td><a class="action-link" href="02-patient-profile.html">View</a></td>
+        </tr>
+        <tr>
+          <td><strong>Arjun Sharma</strong><br><span class="coach-name">55M · Wk 9</span></td>
+          <td><span class="risk-pill" style="background:var(--watch-bg);color:#92400E;">Watch</span></td>
+          <td style="font-size:12px;">Exercise 0 min ×3 · FBS trending up</td>
+          <td><span class="coach-name">Ravi Menon</span></td>
+          <td style="font-size:12px;color:var(--gray-500);">Jun 2</td>
+          <td><a class="action-link" href="02-patient-profile.html">View</a></td>
+        </tr>
+        <tr>
+          <td><strong>Priya Chandrasekaran</strong><br><span class="coach-name">44F · Wk 10</span></td>
+          <td><span class="risk-pill" style="background:#FFEDD5;color:#C2410C;">Slippage</span></td>
+          <td style="font-size:12px;">Log drop: 92% → 45% this week</td>
+          <td><span class="coach-name">Anitha Pillai</span></td>
+          <td style="font-size:12px;color:var(--gray-500);">May 31</td>
+          <td><a class="action-link" href="04-slippage-alerts.html">View</a></td>
+        </tr>
+        <tr>
+          <td><strong>Mohan Krishnaswamy</strong><br><span class="coach-name">58M · Wk 8</span></td>
+          <td><span class="risk-pill" style="background:#FFEDD5;color:#C2410C;">Slippage</span></td>
+          <td style="font-size:12px;">3 missed logs · Last log Jun 2</td>
+          <td><span class="coach-name">Ravi Menon</span></td>
+          <td style="font-size:12px;color:var(--gray-500);">May 28</td>
+          <td><a class="action-link" href="04-slippage-alerts.html">View</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Coach performance -->
+  <div class="coach-grid">
+    <div class="coach-card">
+      <div class="coach-card-title">Coach Review Time (This Week)</div>
+      <div class="coach-row">
+        <div class="coach-avatar">PC</div>
+        <div style="flex:1;">
+          <div class="coach-name-main">Priya Chandran</div>
+          <div class="bar-mini" style="width:82%;"></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="coach-stat">5.8 min</div>
+          <div class="coach-sub">12 patients</div>
+        </div>
+      </div>
+      <div class="coach-row">
+        <div class="coach-avatar">RM</div>
+        <div style="flex:1;">
+          <div class="coach-name-main">Ravi Menon</div>
+          <div class="bar-mini" style="width:95%;"></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="coach-stat">7.1 min</div>
+          <div class="coach-sub">14 patients</div>
+        </div>
+      </div>
+      <div class="coach-row">
+        <div class="coach-avatar">AP</div>
+        <div style="flex:1;">
+          <div class="coach-name-main">Anitha Pillai</div>
+          <div class="bar-mini" style="width:75%;"></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="coach-stat">5.2 min</div>
+          <div class="coach-sub">10 patients</div>
+        </div>
+      </div>
+      <div class="coach-row">
+        <div class="coach-avatar">SK</div>
+        <div style="flex:1;">
+          <div class="coach-name-main">Santosh Kumar</div>
+          <div class="bar-mini" style="width:68%;background:var(--watch);"></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="coach-stat">8.4 min</div>
+          <div class="coach-sub">6 patients</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="coach-card">
+      <div class="coach-card-title">Alert Precision (Thumbs)</div>
+      <div style="padding:8px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <span style="font-size:28px;font-weight:800;color:var(--teal-600);">84%</span>
+          <span style="font-size:12px;color:var(--routine);font-weight:600;background:var(--routine-bg);padding:3px 10px;border-radius:20px;">&#8593; +6% vs last week</span>
+        </div>
+        <div style="font-size:12px;color:var(--gray-600);margin-bottom:10px;">74 alerts reviewed this week · 62 marked correct</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--gray-600);">Correct (&#128077;)</span>
+            <span style="font-weight:700;color:var(--routine);">62</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--gray-600);">False positive (&#128078;)</span>
+            <span style="font-weight:700;color:var(--urgent);">12</span>
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:var(--gray-500);">Top correction reason: "Not urgent / false positive" (7×)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="watermark">MadhuMitra · Screen 5 of 7 · Operator Dashboard · v1.0 · <a href="index.html" style="color:var(--teal-600);">All Screens</a></div>
+
+</body>
+</html>

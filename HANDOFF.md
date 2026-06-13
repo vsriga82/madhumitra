@@ -660,3 +660,240 @@ Known issue: Mobile view alert layout broken
 - Table row buttons not rendering correctly on small screens
 - Need to test on actual phone vs desktop mobile simulation
 - Possible fix: switch mobile view to pure card layout, drop table entirely
+---
+
+## Session Update — June 13, 2026 (Eval Runner + Ground-Truth Audit + Contact Recency + Demo v2)
+
+### Context
+Prepping a **richer demo for ~1 week out** (showing mentor, and Dr. Sinha for closure).
+Demo v2 is the polished **HTML mockups made dynamic** — NOT Streamlit (Streamlit UI was the
+thing we wanted to move away from). Approach: run the real pipeline once, freeze verified
+output, demo replays it (no live API key in a shared demo).
+
+### Eval runner BUILT (was missing) ✅
+- `run_eval.py` lives in the **Madumitra root** (next to app.py). Run from there:
+  - `python run_eval.py --dry-run`  → parser/bucketing only, $0, no LLM
+  - `python run_eval.py`            → full scored run vs ground truth
+- It mirrors app.py's wiring (parse_all → run_reasoning → run_ranker), derives each patient's
+  effective tier from the output bucket (auto_list→severity, queue_list→Manual Queue,
+  nudge_list→Nudge, on_track→On Track), compares to a hardcoded EXPECTED dict, and prints
+  per-patient PASS/FAIL + exact-tier accuracy + alert precision + high-risk recall.
+- Also writes **eval_results.csv** (open in Excel/Sheets to review & mark).
+- NOTE: "running the eval" never existed before — eval was taught after n8n labs. The eval
+  sheet (Google Sheet) had ground truth, but nothing scored the pipeline against it. Now it does.
+
+### KEY GOTCHA that cost an hour
+First real run: every LLM patient returned "Analysis failed — manual review required" →
+all dumped to Manual Queue. Root cause: **`.streamlit/secrets.toml` had no OPENAI_API_KEY**
+(removed when deploying to Streamlit Cloud, where the key lives in Cloud's secret manager).
+Fix: re-add `OPENAI_API_KEY` to local secrets.toml (keep it gitignored). run_eval.py reads the
+key the same way app.py does (st.secrets first, env var fallback) even though it's not a Streamlit app.
+
+### Baseline result (8 original patients, verification OFF)
+- Exact-tier accuracy 6/8 (75% — beats PRD's predicted 60–70% week-1).
+- Alert precision 100%, **high-risk recall 100%** (the non-negotiable number).
+- The 2 "misses" (Rajan, Anita) were NOT model errors — the model reasoned correctly but
+  routed into a severity tier instead of the non-clinical buckets (Nudge / Manual Queue).
+  Single fixable gap: the model under-uses Nudge and Manual Queue. Prompt/output-schema fix.
+
+### Panel expanded 8 → 10
+- **Arjun Sharma** (wk9): rising FBS trend (118→128→136) + exercise 0 ×3, no symptoms → Watch/Medium.
+  Gives the Watch band a 2nd card.
+- **Lakshmi Menon** (wk11): plateau + disengaging logs (one-word entries, fasting dropped, no
+  weights 12d) → Nudge. Gives slippage a real track alongside Rajan.
+- Both authored to match schema exactly; both route to the LLM bucket (story lives in coach_notes).
+
+### Ground-truth audit decisions (auditing the EXPECTED answer key, patient by patient)
+- Priya (High), Suresh (High), Deepak (High), Fatima (Medium), Karthik (On Track): CONFIRMED.
+- **Meena → changed High → Medium.** Reasoning (Sri's lived experience in the program): coaches
+  ping for 2–3 missed days in EARLY weeks (nutrition phase), but by week 4 a patient has adapted;
+  with good HbA1c (7.8), mid-age, no alarming symptom, it's OK to wait ~2 more days before High.
+  → Implies a needed RULE change: **missed-log severity should be program-week-aware**
+  (early weeks escalate fast on silence; later weeks more grace). This is a `check_rules()` /
+  thresholds change, NOT a prompt change (Meena is rules-alerted, auto-High today).
+  → Consequence: pipeline still outputs High, so Meena now shows FAIL on next eval = correct,
+  it's flagging the rule gap. Tested high-risk recall now rests on 3 unambiguous Highs
+  (Priya, Suresh, Deepak) — deliberate, cleaner story.
+- **Rajan → keep Nudge** (lean; pending final confirm). Plateau with near-green vitals is a
+  motivation/disengagement case, not clinical. This distinction IS the product. Fix = teach the
+  model to route to Nudge (prompt/schema), don't relabel truth to match model.
+- **Anita → keep Manual Queue** (borderline + genuinely uncertain; contact recency 7d supports
+  surfacing her rather than burying). OPEN: final confirm pending.
+
+### NEW prioritization axis identified — CONTACT RECENCY
+- Insight (Sri): prioritization was blind to **when the coach last reached out**. A clinically-mild
+  patient not contacted in a week may need outreach MORE than a louder patient contacted yesterday.
+  Recency is a **surfacing/timing** input, not a severity input. Model = severity × recency.
+- DATA ADDED: every patient now has a `contact` block:
+  `{ "last_contacted": "YYYY-MM-DD", "last_method": "call|whatsapp", "days_since_contact": N }`.
+  Acute cases contacted 1–2d ago (already managed); disengagement/borderline cases stale
+  (Rajan 8d, Anita 7d, Lakshmi 9d) — i.e. the overdue ones are exactly who should surface.
+- SCOPE DECISION: show "last contact: Nd ago" on the patient card/profile for the demo (cheap,
+  high-value). Do NOT rewire the ranker for recency before demo. 
+  **PHASE-2 PRD ITEM: contact-recency-driven prioritization / an "overdue for contact" surface**
+  (pairs conceptually with the Nudge/disengagement track). Designed, not built for demo.
+
+### Multi-agent status (decided)
+- Verifier (`ENABLE_VERIFICATION`) = the legit multi-agent pattern. Run baseline OFF first, then
+  flip ON and measure the delta. This is the demo's multi-agent + safety story.
+- Third agent = **LLM panel-ranker** (relative prioritization across all flagged patients,
+  weighing age/comorbidity/program-week beyond the deterministic score; poster case TC-10
+  Deepak>Priya). DESIGNED, sketched as `rank_by_reasoning()`. GATED: build only after pilot
+  shows coach override rate >20%. Not built for demo — narrate it as roadmap (the senior move:
+  add agentic complexity only when data justifies it).
+
+### Claude API port — PENDING
+- Pipeline currently uses **OpenAI gpt-4o** (reasoning.py: AsyncOpenAI). HANDOFF earlier said
+  "Anthropic/Claude" but the code is OpenAI.
+- Plan: port reasoning.py to Claude (Anthropic Messages API) for the interview-relevant
+  "built on Anthropic API" story + to escape OpenAI starter-tier TPM limit (the reason
+  verification was disabled). Small change: client swap, `system` as its own param (not a
+  message role), `max_tokens` required, response via `resp.content[0].text`.
+- BLOCKED on: Anthropic Console signup verification email not arriving. New API accounts get
+  $5 free credit. Do this when email resolves; not on the demo critical path.
+- Note: Claude Pro / Gemini subscriptions are NOT API access — separate products, separate keys.
+
+### Demo v2 — agreed screen scope (richer demo, baked replay)
+Spine: **Login → Morning Brief → Patient Profile → Slippage Detail → quick Note flow.**
+- Morning Brief = centerpiece. Clinical bands (Urgent/Watch/Routine) + a Slippage/Nudge band
+  in the SAME list (not a separate tab). Real state, working feedback loop, verifier pass
+  visible on urgent cards. Show "last contact Nd ago" on cards.
+- Patient Profile = clinical drill-down (7-day trend, evidence behind the flag).
+- Slippage Detail = Rajan/Lakshmi drill-down (logging dot-grid trailing off, tone quotes, plateau).
+- Operator Dashboard (05), full Food Log (03): DEFER. Slippage as separate screen: folded into Brief band.
+- Use the REAL 10 patient names everywhere (the mockups had placeholder names — fix to match).
+
+### Immediate next steps
+1. Re-run `python run_eval.py` on the 10-patient data (now with contact field) → get fresh
+   baseline + eval_results.csv. Expect Meena to FAIL (intended — flags the rule gap).
+2. Decide: fix the Nudge/Manual-Queue routing in prompt before demo (likely fixes Rajan + Anita
+   together), and whether to make the missed-log rule program-week-aware before demo or defer.
+3. Freeze verified output → build dynamic Morning Brief (centerpiece) against it.
+
+---
+
+## Session Update — June 13, 2026 (cont.) — Prompt fix LANDED, eval FROZEN at 9/10
+
+### Final eval result (10 patients, verification OFF) — THIS IS THE FROZEN BASELINE
+- **Exact-tier accuracy 9/10 (90%)**, alert precision 75%, **high-risk recall 100% (3/3)**.
+- Final tiers (all correct except the one intended fail):
+  - Priya High ✓, Suresh High ✓, Deepak High ✓ (the 3 high-risk — recall 100%)
+  - Fatima Medium ✓, Arjun Medium ✓
+  - Anita → Manual Queue ✓ (confidence now correctly low)
+  - Rajan → Nudge ✓, Lakshmi → Nudge ✓ (slippage band populated)
+  - Karthik On Track ✓
+  - **Meena = lone FAIL, INTENDED**: rules-alert still outputs High vs the deliberate Medium
+    ground truth. This is the documented program-week rule gap, NOT a model miss. Leave as-is for demo.
+
+### What fixed Rajan / Anita (the prompt fix that landed)
+- Root cause was NOT clinical reasoning — it was field-setting compliance. The guide described
+  Nudge/Manual-Queue but never told the model which JSON fields to set, so it defaulted to the
+  glucose-band tier (Low/Medium) and ignored nudge_risk / confidence.
+- Fix = added a **HARD OVERRIDE block** to `protocol/alert_guide_v1.md` (in Section 11 area):
+  - NUDGE: stable plateau + in-safe-range glucose → MUST set severity="On Track",
+    confidence="high", track="on_track", nudge_risk=true. Explicitly "do NOT set Low" +
+    worked example (Rajan FBS 118 stable). Overrides the Low glucose-band rule.
+  - MANUAL QUEUE: early-program + borderline glucose + missing data → MUST set confidence="low",
+    track="queue". Worked example (Anita wk3 FBS 128, no weights).
+  - Rising-trend cases explicitly excluded from Nudge → Arjun correctly stayed Medium.
+- Took TWO iterations: first pass moved Rajan Medium→Low (half-compliance); hardening to an
+  explicit override with worked examples got it to On Track+nudge_risk.
+
+### STATUS: MadhuMitra is demo-ready. STOP tuning.
+- Do NOT re-run / re-tune. Bar is met (90% / 100% recall / slippage band live).
+- eval_results.csv written. For the build, the demo replays this frozen output.
+- NOTE: full per-patient JSON (severity/confidence/nudge_risk/reasoning/signals) was NOT dumped
+  to a file this session — only eval_results.csv + the terminal table/screenshot exist. If the
+  build needs the richer fields, either (a) add a 2-line dump of run_ranker's `final` dict to
+  frozen_output.json and run ONCE more, or (b) reconstruct from data + eval_results.csv in the build.
+
+### Claude API — credit now available ($5)
+- Anthropic API credit obtained. Claude port of reasoning.py is UNBLOCKED but DEFERRED —
+  do it AFTER the demo (it's a clean standalone task + counts as real Anthropic-API rep for
+  interviews). Do not port mid-demo-build; it would force a full re-eval/re-tune on Claude.
+- The $5 Claude credit could also enable running the VERIFIER (ENABLE_VERIFICATION=True) cleanly
+  if OpenAI rate limits block it — but only if verification is in the 4-min demo script, and only
+  after the baseline is frozen.
+
+### NEXT (likely a fresh chat — "MadhuMitra demo build")
+Demo constraint reconfirmed: **4-min presentation + 2-min Q&A.** So the demo is the Morning Brief
+convincing for ~90s, ONE eval number, a tight ~5-slide deck. Depth (eval methodology, ground-truth
+audit, contact recency, 3rd-agent roadmap) is Q&A back-pocket, not slides.
+Build = dynamic Morning Brief (centerpiece), driven by the frozen output, extending the existing
+teal HTML mockups (01-morning-brief.html), NOT Streamlit. Bring to the build chat: this HANDOFF.md,
+01-morning-brief.html, eval_results.csv, the final eval table screenshot.
+After demo: pivot to TU real-ROI work (STAR navigator) + the Claude port.
+
+---
+
+## Session Update — June 13, 2026 (cont. 2) — Demo decisions locked + build brief
+
+### Audience & bar (this changed the plan — important)
+- Two audiences, in order: **(1) Mahesh** (course mentor — evaluates engineering/build), then
+  **(2) Dr. Sinha** (clinician — closure + possible interest). The artifact ALSO goes to
+  **prospective employers and a public website.**
+- BAR = **impressive + instantly legible**, not just functional. 4-min slot. Rationale: a demo
+  that merely works but isn't visually clear undersells him to employers. This is why we are
+  building the polished teal UI rather than shipping the plainer Streamlit app.
+- **Design north star:** a stranger watching ~30s should understand the triage WITHOUT narration.
+
+### Demo format DECIDED
+- **Public URL (not just a recording).** Dr. Sinha can open it on her phone; recording optional/secondary.
+- **Two flows, shown separately (both acceptable as separate flows):**
+  - Flow 2 "agent munching" = the pipeline running (parse → rules vs LLM split → reasoning →
+    prioritized output + 9/10 eval). The ENGINEERING proof for Mahesh.
+  - Flow 1 "coach view" = the polished teal Morning Brief, already-populated.
+- **Real-world framing (use this in the pitch):** in production the batch runs overnight server-side;
+  the coach just OPENS a ready Brief. So the coach never triggers a run — rendering frozen output
+  IS an honest representation, not a fake.
+
+### Security / hosting — KEY HANDLING (do not skip)
+- A static public page CANNOT hold the API key (ships to browser = published key; scraped within
+  hours). Two safe patterns only: (a) static page rendering FROZEN output (no key, no call), or
+  (b) a server-side backend (Streamlit Cloud, or a Netlify/Vercel serverless Function holding the
+  key as a server env var).
+- **Decision for the showpiece:** teal Morning Brief = STATIC on Netlify, rendered from
+  frozen_output.json. No key, no backend, no risk. Live-on-click via a Netlify Function = a
+  POST-demo v2 (good Anthropic-API rep later).
+- **GIT PUSH WARNING:** the deployed Streamlit app currently runs LOCAL; to deploy it must be
+  pushed to GitHub. BEFORE pushing: confirm `.streamlit/secrets.toml` is in `.gitignore` and the
+  key is NOT committed. If it was ever committed, ROTATE the key. (Bots scrape GitHub for keys.)
+
+### Existing deployed Streamlit app (v1) — status
+- madhumitra.streamlit.app already exists and is genuinely decent (teal brand, Step1→Step2 flow,
+  shows the rules-vs-AI split live, coach dashboard with Alerts/Follow-up/Review/Nudge·On-track/
+  Feedback tabs, thumbs feedback loop). It ALREADY does both flows.
+- BUT it is running PRE-TODAY data + logic: 8 patients, old Anita (Medium not Manual Queue), old
+  Suresh ("fbs 155" not the foamy-urine Tier-1 framing), no contact field, no prompt fix.
+- → If the Streamlit app is used in the demo at all, REDEPLOY it with today's files first
+  (10-patient data, fixed alert_guide_v1.md) so it reflects the 9/10 / Anita-in-queue / 2-slippage
+  behavior — i.e. his BEST work, not v1.
+
+### Build brief for the next chat (the teal Morning Brief showpiece)
+- Render from **today's frozen_output.json** (10 patients, 9/10, Anita=queue, Rajan+Lakshmi=Nudge).
+- **All THREE solution feature-bands must be instantly legible** (this maps to the deck's
+  "3 key features"): rules-caught urgent (deterministic safety) / LLM-reasoned Medium (multi-signal
+  reasoning) / slippage-nudge (disengagement catch). If the Brief shows all three clearly, the Brief
+  visually IS the "Our Solution" slide.
+- Show on cards: name, severity, one-line reasoning trace, and "last contact: N days ago" (contact field).
+- Wire click-through: Brief → Patient Profile (clinical drill-down, 7-day trend) → Slippage Detail
+  (Rajan/Lakshmi: logging dot-grid trailing off, tone quotes, plateau).
+- Deploy STATIC to Netlify → public URL.
+- Bring to build chat: this HANDOFF.md, frozen_output.json, ALL the HTML mockups (01-morning-brief,
+  02-patient-profile, 04-slippage-alerts, 06-coach-notes, 07-login, index — not just the Brief).
+- Trim dead nav links / stub cut screens as "Phase 2" so a tapping reviewer hits no broken links.
+- Use the REAL 10 patient names everywhere (mockups had placeholder names like Ramesh/Sunita — fix).
+
+### Deck (Mahesh template) — context for later (NOT today; doing it over weekdays)
+- Template = 11 slides, but 4 min ⇒ realistically ~5-6: Title, Problem(+why/market in one line),
+  Our Solution (3 features), Demo (the two flows), What We've Learned (moat=dataset, deterministic
+  overrides LLM, eval-is-the-gate), Close. Business model/team/pricing compress or cut at 4 min.
+- "What We've Learned" is a strength slide — use the lived insights, incl. today's program-week
+  missed-log rule gap discovery and the contact-recency axis.
+
+### Still-open / parked
+- Anita ground truth: logged as Manual Queue (now passing in eval). Considered final.
+- Meena: ground truth Medium; pipeline still outputs High (rules) = intended FAIL = documented
+  program-week rule gap. Fix rule = post-demo.
+- Claude port + verifier-on + Netlify Function (live demo) + 3rd ranker agent = all POST-demo.
+- After demo: pivot to TransUnion STAR-navigator (the real-ROI work) + Claude port as first rep.

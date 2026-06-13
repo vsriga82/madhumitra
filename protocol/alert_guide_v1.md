@@ -348,6 +348,30 @@ Every alert must be:
 
 Never mix categories in the UI. Clinical alerts require a response. Nudges are guidance. Mixing them dilutes urgency.
 
+### Setting the output fields per category — HARD OVERRIDE (takes precedence over all tier-by-glucose rules below)
+
+Decide the category FIRST. The rules here OVERRIDE the severity bands in Section 1 and the glucose thresholds. If a glucose reading falls in the Low band but one of the rules below applies, the rule below wins.
+
+**NUDGE — plateau / silent disengagement with clinically safe signals.**
+Trigger: the Section 7 plateau pattern is present (results flat/stable over the window, log quality declining, fasting/weights slipping) AND clinical signals are in a safe range (no Tier 1 symptom, FBS not in the HIGH range, no acute deviation, NOT a rising glucose trend).
+
+When this triggers, the finding is disengagement, not a clinical problem. A fasting glucose that is stable and only *slightly above the patient's aspirational personal target* is NOT a clinical deviation here — even if it technically falls in the Low band.
+
+→ You MUST set: `severity = "On Track"`, `confidence = "high"`, `track = "on_track"`, `nudge_risk = true`.
+→ Do NOT set severity to "Low" or "Medium". Low is still a clinical alert in the auto-list — a stable plateau is NOT a clinical alert. The ONLY signal that this patient needs anything is `nudge_risk = true`.
+
+Worked example: FBS 118, stable at 116–120 for ~3 weeks, no symptoms, logs getting shorter, fasting slipping → `severity="On Track"`, `nudge_risk=true`. (NOT Low — the 118 is stable and only above an aspirational target.)
+
+**MANUAL REVIEW QUEUE — genuine uncertainty.**
+Trigger: the patient is in the first weeks of the program AND glucose is borderline (not clearly normal, not clearly HIGH) AND key data is missing or signals conflict (e.g. no weight history yet, ambiguous mood).
+
+When this triggers, you do NOT have enough to make a confident clinical call. You MUST express that uncertainty — do not paper over it with a confident Medium.
+
+→ You MUST set: `confidence = "low"`, `track = "queue"` (severity = your best estimate).
+→ Setting `confidence = "high"` on an early-program borderline case with missing data is an error. A single number slightly above target is NOT sufficient grounds for a confident clinical alert.
+
+Worked example: week 3, FBS 128 (borderline), no weights logged yet, mood ambiguous → `confidence="low"`, `track="queue"`. (NOT Medium/high — too early and too little data to be confident.)
+
 ---
 
 ## Section 12 — Escalation to Doctor

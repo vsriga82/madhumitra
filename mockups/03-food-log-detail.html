@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MadhuMitra — Food Log Detail</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-600: #0D9488;
+    --teal-500: #14B8A6;
+    --teal-100: #CCFBF1;
+    --teal-50:  #F0FDFA;
+    --urgent:   #EF4444;
+    --urgent-bg:#FEF2F2;
+    --watch:    #F59E0B;
+    --watch-bg: #FFFBEB;
+    --routine:  #10B981;
+    --routine-bg:#ECFDF5;
+    --gray-900: #111827;
+    --gray-700: #374151;
+    --gray-600: #4B5563;
+    --gray-500: #6B7280;
+    --gray-400: #9CA3AF;
+    --gray-300: #D1D5DB;
+    --gray-200: #E5E7EB;
+    --gray-100: #F3F4F6;
+    --gray-50:  #F9FAFB;
+    --white:    #FFFFFF;
+    --radius:   10px;
+    --shadow:   0 1px 3px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #F0FDFA;
+    display: flex;
+    justify-content: center;
+    padding: 0 0 40px;
+  }
+  .phone-frame { width: 390px; min-height: 100vh; background: var(--gray-50); }
+
+  .status-bar {
+    background: var(--teal-600);
+    padding: 12px 20px 8px;
+    display: flex; justify-content: space-between;
+    color: white; font-size: 11px; font-weight: 500;
+  }
+  .header {
+    background: var(--teal-600);
+    padding: 4px 16px 16px;
+    color: white;
+  }
+  .header-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+  }
+  .back-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: white; text-decoration: none;
+  }
+  .header h1 { font-size: 17px; font-weight: 700; }
+  .header-sub { font-size: 12px; opacity: 0.75; padding-left: 42px; }
+
+  /* Day selector */
+  .day-tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    padding: 12px 16px 4px;
+    scrollbar-width: none;
+  }
+  .day-tab {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-600);
+    background: var(--white);
+    cursor: pointer;
+  }
+  .day-tab.active {
+    background: var(--teal-600);
+    color: white;
+    border-color: var(--teal-600);
+  }
+  .day-tab.flagged { border-color: var(--watch); color: #92400E; background: var(--watch-bg); }
+
+  /* Daily summary banner */
+  .daily-banner {
+    margin: 10px 16px 0;
+    background: var(--watch-bg);
+    border: 1px solid #FDE68A;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .banner-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .banner-title { font-size: 13px; font-weight: 700; color: #92400E; }
+  .banner-badge {
+    font-size: 10px; font-weight: 700;
+    background: var(--watch); color: white;
+    padding: 2px 8px; border-radius: 20px;
+  }
+  .banner-note { font-size: 12px; color: #78350F; line-height: 1.45; }
+
+  /* Macro bar */
+  .macro-bar {
+    margin: 10px 16px 0;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px;
+  }
+  .macro-title {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--gray-500); margin-bottom: 12px;
+  }
+  .macro-row {
+    display: flex; gap: 10px; margin-bottom: 12px;
+  }
+  .macro-item { flex: 1; }
+  .macro-name { font-size: 10px; color: var(--gray-500); margin-bottom: 3px; }
+  .macro-val { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .macro-val.danger { color: var(--urgent); }
+  .macro-val.warn   { color: var(--watch); }
+  .macro-val.ok     { color: var(--routine); }
+  .macro-target { font-size: 10px; color: var(--gray-400); }
+  .progress-track {
+    height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden;
+  }
+  .progress-fill { height: 100%; border-radius: 3px; }
+  .fill-danger { background: var(--urgent); }
+  .fill-warn   { background: var(--watch); }
+  .fill-ok     { background: var(--teal-500); }
+
+  /* Meal card */
+  .meal-card {
+    margin: 10px 16px 0;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .meal-header {
+    padding: 12px 14px 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .meal-time-badge {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .meal-time-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--teal-500);
+  }
+  .meal-time { font-size: 12px; font-weight: 600; color: var(--gray-700); }
+  .meal-clock { font-size: 11px; color: var(--gray-400); }
+  .meal-flag {
+    font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 20px;
+  }
+  .flag-over  { background: var(--urgent-bg); color: var(--urgent); }
+  .flag-watch { background: var(--watch-bg); color: #92400E; }
+  .flag-ok    { background: var(--routine-bg); color: #065F46; }
+
+  /* Food item row */
+  .food-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .food-item:last-child { border-bottom: none; }
+  .food-row1 { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .food-name { font-size: 13px; font-weight: 600; color: var(--gray-900); }
+  .food-portion { font-size: 11px; color: var(--gray-500); margin-top: 1px; }
+  .food-macros { display: flex; gap: 8px; }
+  .macro-chip {
+    font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 20px;
+  }
+  .chip-carb { background: #FEF3C7; color: #92400E; }
+  .chip-prot { background: #EFF6FF; color: #1E40AF; }
+  .chip-fat  { background: #F5F3FF; color: #5B21B6; }
+  .chip-cal  { background: var(--gray-100); color: var(--gray-600); }
+  .food-note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--gray-500);
+    background: var(--gray-100);
+    border-radius: 6px;
+    padding: 5px 8px;
+    line-height: 1.4;
+    border-left: 3px solid var(--watch);
+  }
+  .food-note.ok-note { border-color: var(--teal-500); }
+
+  /* Protocol note */
+  .protocol-note {
+    margin: 10px 16px 0;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .pn-title { font-size: 11px; font-weight: 700; color: #1E40AF; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .pn-text { font-size: 12px; color: #1D4ED8; line-height: 1.5; }
+
+  .watermark { text-align: center; padding: 14px 8px 8px; font-size: 10px; color: var(--gray-400); border-top: 1px solid var(--gray-100); margin-top: 14px; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    background: var(--white); border-top: 1px solid var(--gray-200);
+    display: flex; padding: 8px 0 12px;
+  }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--gray-400); font-weight: 500; cursor: pointer; padding: 4px 0; }
+  .nav-item.active { color: var(--teal-600); }
+  .nav-icon { font-size: 20px; }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+
+  <div class="status-bar">
+    <span>7:48 AM</span>
+    <span>&#9679;&#9679;&#9679; 4G</span>
+  </div>
+
+  <div class="header">
+    <div class="header-row">
+      <a href="02-patient-profile.html" class="back-btn">&#8592;</a>
+      <h1>Food Log — Ramesh Iyer</h1>
+    </div>
+    <div class="header-sub">Week 8 · DiRECT Protocol Phase 2 · Carb target: 80g/day</div>
+  </div>
+
+  <!-- Day selector -->
+  <div class="day-tabs">
+    <div class="day-tab flagged">Jun 3 &#9888;</div>
+    <div class="day-tab flagged">Jun 4 &#9888;</div>
+    <div class="day-tab flagged">Jun 5 &#9888;</div>
+    <div class="day-tab active">Today Jun 6</div>
+    <div class="day-tab" style="color:var(--gray-400);border-style:dashed;">Jun 7</div>
+  </div>
+
+  <!-- Daily summary banner — flagged day -->
+  <div class="daily-banner">
+    <div class="banner-row">
+      <span class="banner-title">Yesterday (Jun 5) — Carbs Exceeded</span>
+      <span class="banner-badge">&#9888; Over Limit</span>
+    </div>
+    <div class="banner-note">Total carbs 240g vs protocol limit of 80g/day — exceeded by 160g. 3 chapatis at dinner was the primary contributor. FBS this morning (218 mg/dL) likely influenced by yesterday's carb load.</div>
+  </div>
+
+  <!-- Daily macros summary -->
+  <div class="macro-bar">
+    <div class="macro-title">Yesterday's Totals vs Protocol</div>
+    <div class="macro-row">
+      <div class="macro-item">
+        <div class="macro-name">Carbs</div>
+        <div class="macro-val danger">240g</div>
+        <div class="macro-target">Target: 80g</div>
+        <div class="progress-track">
+          <div class="progress-fill fill-danger" style="width:100%;"></div>
+        </div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-name">Protein</div>
+        <div class="macro-val warn">52g</div>
+        <div class="macro-target">Target: 95g</div>
+        <div class="progress-track">
+          <div class="progress-fill fill-warn" style="width:55%;"></div>
+        </div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-name">Fat</div>
+        <div class="macro-val ok">38g</div>
+        <div class="macro-target">Target: ~40g</div>
+        <div class="progress-track">
+          <div class="progress-fill fill-ok" style="width:95%;"></div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--gray-500);text-align:center;">
+      Total calories: ~1,540 kcal &nbsp;·&nbsp; Carb % of energy: 62% (protocol max: 25%)
+    </div>
+  </div>
+
+  <!-- Breakfast -->
+  <div class="meal-card">
+    <div class="meal-header">
+      <div class="meal-time-badge">
+        <div class="meal-time-dot" style="background:var(--teal-500);"></div>
+        <span class="meal-time">Breakfast</span>
+        <span class="meal-clock">7:30 AM</span>
+      </div>
+      <span class="meal-flag flag-watch">&#9888; Watch</span>
+    </div>
+
+    <div class="food-item">
+      <div class="food-row1">
+        <div>
+          <div class="food-name">Idli Sambar</div>
+          <div class="food-portion">4 pieces + 1 cup sambar</div>
+        </div>
+        <div class="food-macros">
+          <span class="macro-chip chip-carb">C: 56g</span>
+          <span class="macro-chip chip-prot">P: 10g</span>
+        </div>
+      </div>
+      <div class="food-note">4 idlis at breakfast already uses 70% of daily carb target (56g of 80g). Consider reducing to 2 pieces.</div>
+    </div>
+
+    <div class="food-item">
+      <div class="food-row1">
+        <div>
+          <div class="food-name">Filter Coffee (with milk)</div>
+          <div class="food-portion">1 cup, 100ml milk + 1 tsp sugar</div>
+        </div>
+        <div class="food-macros">
+          <span class="macro-chip chip-carb">C: 8g</span>
+          <span class="macro-chip chip-cal">60 kcal</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lunch -->
+  <div class="meal-card">
+    <div class="meal-header">
+      <div class="meal-time-badge">
+        <div class="meal-time-dot" style="background:var(--teal-400, #2DD4BF);"></div>
+        <span class="meal-time">Lunch</span>
+        <span class="meal-clock">1:15 PM</span>
+      </div>
+      <span class="meal-flag flag-watch">&#9888; Watch</span>
+    </div>
+
+    <div class="food-item">
+      <div class="food-row1">
+        <div>
+          <div class="food-name">Rice + Sambar + Rasam</div>
+          <div class="food-portion">1.5 cups cooked rice, 1 cup sambar, 1 cup rasam</div>
+        </div>
+        <div class="food-macros">
+          <span class="macro-chip chip-carb">C: 78g</span>
+          <span class="macro-chip chip-prot">P: 9g</span>
+          <span class="macro-chip chip-fat">F: 4g</span>
+        </div>
+      </div>
+      <div class="food-note">Rice (1.5 cups) contributes 72g of carbs alone — this is almost the entire daily limit in one meal. Replace with cauliflower rice or reduce portion.</div>
+    </div>
+
+    <div class="food-item">
+      <div class="food-row1">
+        <div>
+          <div class="food-name">Papad (roasted)</div>
+          <div class="food-portion">2 pieces</div>
+        </div>
+        <div class="food-macros">
+          <span class="macro-chip chip-carb">C: 12g</span>
+          <span class="macro-chip chip-cal">70 kcal</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dinner — primary flag -->
+  <div class="meal-card" style="border: 2px solid var(--urgent);">
+    <div class="meal-header" style="background:var(--urgent-bg);">
+      <div class="meal-time-badge">
+        <div class="meal-time-dot" style="background:var(--urgent);"></div>
+        <span class="meal-time" style="color:var(--urgent);">Dinner</span>
+        <span class="meal-clock">8:45 PM</span>
+      </div>
+      <span class="meal-flag flag-over">&#128308; Over Limit</span>
+    </div>
+
+    <div class="food-item">
+      <div class="food-row1">
+        <div>
+          <div class="food-name">Chapati</div>
+          <div class="food-portion">3 pieces (medium, whole wheat)</div>
+        </div>
+        <div class="food-macros">
+          <span class="macro-chip chip-carb">C: 66g</span>
+          <span class="macro-chip chip-prot">P: 9g</span>
+          <span class="macro-chip chip-fat">F: 5g</span>
+        </div>
+      </div>
+      <div class="food-note">3 chapatis at dinner — adds 66g carbs when daily limit already exceeded. Protocol max is 1 chapati or 0 if carb budget used at earlier meals.</div>
+    </div>
+
+    <div class="food-item">
+      <div class="food-row1">
+        <div>
+          <div class="food-name">Dal Tadka</div>
+          <div class="food-portion">1 cup, yellow lentils</div>
+        </div>
+        <div class="food-macros">
+          <span class="macro-chip chip-carb">C: 20g</span>
+          <span class="macro-chip chip-prot">P: 14g</span>
+          <span class="macro-chip chip-fat">F: 6g</span>
+        </div>
+      </div>
+      <div class="food-note ok-note">Dal is a good protein source. Recommend increasing dal and reducing chapati.</div>
+    </div>
+
+    <div style="padding: 8px 14px 12px;">
+      <div style="background:#FEF2F2;border-radius:6px;padding:8px 10px;font-size:11px;color:#991B1B;">
+        <strong>Protocol deviation:</strong> 2 chapatis at dinner exceeds daily carb limit by ~30g (Day total: 240g vs 80g limit). This meal alone was 86g over target.
+      </div>
+    </div>
+  </div>
+
+  <!-- Protocol guidance -->
+  <div class="protocol-note">
+    <div class="pn-title">DiRECT Protocol Guidance</div>
+    <div class="pn-text">Phase 2 carb target: 80g/day. Indian staples like rice and chapati are high-glycaemic — rice (1 cup) = ~45g carbs, chapati (1 pc) = ~22g carbs. Recommended substitutes: cauliflower rice, roti made with almond or besan flour, high-protein dals as primary carb source.</div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav" style="margin-top:14px;">
+    <div class="nav-item" onclick="window.location.href='01-morning-brief.html'"><span class="nav-icon">&#127968;</span><span>Brief</span></div>
+    <div class="nav-item active"><span class="nav-icon">&#128101;</span><span>Patients</span></div>
+    <div class="nav-item" onclick="window.location.href='04-slippage-alerts.html'"><span class="nav-icon">&#9888;</span><span>Alerts</span></div>
+    <div class="nav-item" onclick="window.location.href='06-coach-notes.html'"><span class="nav-icon">&#128203;</span><span>Notes</span></div>
+    <div class="nav-item" onclick="window.location.href='05-operator-dashboard.html'"><span class="nav-icon">&#128200;</span><span>Program</span></div>
+  </div>
+
+  <div class="watermark">MadhuMitra · Screen 3 of 7 · Food Log Detail · v1.0 · <a href="index.html" style="color:var(--teal-600);">All Screens</a></div>
+
+</div>
+</body>
+</html>

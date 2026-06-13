@@ -1,0 +1,512 @@
+{
+  "auto_list": [
+    {
+      "name": "Deepak Verma",
+      "severity": "High",
+      "confidence": "high",
+      "track": "auto",
+      "reasoning": "FBS 165 mg/dL (65 above doctor-set target of 100) with medication missed, BP 145/92 above high threshold, third consecutive day of stress score 5 and sleep 4.5 hrs fragmented, all three craving types selected, carbs 200g against target of 80g, protein 50g against target of 95g, and suspected sleep apnea with snoring noted — compounding clinical picture across glucose, cardiovascular, nutrition, and behavioural signals in a patient with hypertension, dyslipidemia, and fatty liver.",
+      "signals": [
+        "FBS 165 mg/dL — 65 above doctor-set target of 100, above medium threshold of 130",
+        "medication missed today — diabetes, BP, and cholesterol medications not taken",
+        "BP 145/92 mmHg — above high threshold of 140/90, concerning given hypertension comorbidity and missed BP medication",
+        "stress score 5/5 — third consecutive day above threshold of 4 (HIGH combined stress-sleep pattern)",
+        "sleep 4.5 hrs — below threshold of 6, woke up multiple times, third consecutive poor night",
+        "suspected sleep apnea — snoring noted by family, fragmented sleep, daytime sleepiness reported; possible driver of glucose disruption",
+        "carbs 200g against target of 80g — 150% above target",
+        "protein 50g against target of 95g — 47% below target for multiple days",
+        "all three craving types selected — Sweet, Salty, Crunchy — highest dietary deviation risk pattern",
+        "exercise 15 min only, patient note states very slow walk stopped early due to no energy — target 30 min not met",
+        "no strength training in 8 days — required component of program",
+        "fasting 1 of 5 expected days this week — significant consistency gap",
+        "mood: Angry and Frustrated — negative compound mood signal",
+        "Tier 2 symptoms: anxiety, headache, sleepy/drowsy, body pain — multiple same-day, amplifying overall signal weight",
+        "food diary confirms stress eating — paratha with butter, dal makhani, mithai",
+        "free text 'feeling very heavy' noted — per clinic interpretation this means fatigue and physical discomfort, not weight gain; consistent with low energy, fragmented sleep, and Tier 2 symptom cluster",
+        "glucose trend improving from baseline 235 mg/dL but today's reading is a significant deviation from recent program direction",
+        "weight 103.4 kg — down from baseline 106.0 kg, positive program signal but not clinically relevant to today's acute picture",
+        "BP 145/92 mmHg above high threshold"
+      ],
+      "has_tier1_symptom": false,
+      "medication_missed": true,
+      "consecutive_days": 3,
+      "glucose_trend": "stable",
+      "escalate_to_doctor": true,
+      "nudge_risk": false,
+      "source": "llm",
+      "escalation_reasons": [
+        "BP 145/92 mmHg above high threshold"
+      ],
+      "verified": false,
+      "verification_note": "Verification disabled — enable for production",
+      "priority_score": 209
+    },
+    {
+      "name": "Suresh Nair",
+      "severity": "High",
+      "confidence": "high",
+      "source": "rules",
+      "reasoning": "Tier 1 symptom(s) detected: dizziness, swelling. Same-day coach contact required.",
+      "priority_score": 120,
+      "deviations": [
+        "fbs_medium: 155 mg/dL (threshold: 130)",
+        "exercise_low: 20 min (target: 30)",
+        "sleep_quality_poor: woke up tired",
+        "tier1_symptom: dizziness",
+        "tier1_symptom: swelling",
+        "tier2_symptom: sleepy/drowsy",
+        "bp_above_ada: 135/86 mmHg",
+        "carbs_high: 110g (target: 80g)",
+        "negative_mood: Bored",
+        "craving: Craving Salty"
+      ],
+      "has_tier1_symptom": true,
+      "medication_missed": false,
+      "consecutive_days": 1,
+      "send_to_llm": false,
+      "track": "auto",
+      "structured": {
+        "fbs_mgdl": 155,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 20,
+        "exercise_type": "walk",
+        "exercise_note": "Short walk, felt tired halfway",
+        "weight_kg": 96.3,
+        "medication_taken": true,
+        "sleep_hours": 6.5,
+        "sleep_quality": "woke up tired",
+        "stress_score": 3,
+        "moods": [
+          "Bored",
+          "Craving Salty"
+        ],
+        "symptoms": [
+          "dizziness",
+          "swelling",
+          "sleepy/drowsy"
+        ],
+        "protein_g": 72,
+        "carbs_g": 110,
+        "blood_pressure_systolic": 135,
+        "blood_pressure_diastolic": 86,
+        "fasting_day": false,
+        "screen_time_hours": 3
+      },
+      "unstructured": {
+        "food_diary": "Dosa, sambar, small gulab jamun after lunch.",
+        "free_text": "Felt dizzy after my morning walk today. Also noticed my urine looked foamy this morning. Not sure what is happening. Feeling a bit tired.",
+        "coach_notes": "Swelling in legs noted today. Has CKD — foamy urine is especially significant. Flag for urgent doctor review."
+      },
+      "program_history": {
+        "program_start_date": "2026-04-01",
+        "week_number": 8,
+        "initial_fbs_mgdl": 220,
+        "initial_weight_kg": 99.0,
+        "protein_target_g": 90,
+        "carb_target_g": 80,
+        "fasting_protocol": true,
+        "fasting_expected_days_per_week": 4,
+        "strength_training_required": true,
+        "clinical_targets": {
+          "fbs_target_mgdl": 100,
+          "fbs_hypoglycemia_risk_mgdl": 85,
+          "conservative_targets": true
+        },
+        "comorbidities": {
+          "hypertension": true,
+          "thyroid_disorder": false,
+          "chronic_kidney_disease": true,
+          "dyslipidemia": true,
+          "cardiovascular_disease": false,
+          "anemia": false,
+          "vitamin_d_deficiency": false,
+          "pcod": false,
+          "fatty_liver": false,
+          "other": "mild microalbuminuria"
+        },
+        "medications": {
+          "diabetes_medication": true,
+          "bp_medication": true,
+          "thyroid_medication": false,
+          "cholesterol_medication": true,
+          "other": "ACE inhibitor for kidney protection"
+        },
+        "baseline_labs": {
+          "hba1c_pct": 9.8,
+          "cholesterol_ldl": 178,
+          "vitamin_d": 28,
+          "creatinine": 1.4
+        }
+      }
+    },
+    {
+      "name": "Priya Sharma",
+      "severity": "High",
+      "confidence": "high",
+      "source": "rules",
+      "reasoning": "Tier 1 symptom(s) detected: dizziness — FBS 187 mg/dL (threshold: 180). Same-day coach contact required.",
+      "priority_score": 85,
+      "deviations": [
+        "fbs_high: 187 mg/dL (threshold: 180)",
+        "exercise_low: 0 min (target: 30)",
+        "sleep_low: 5.5 hrs (threshold: 6)",
+        "sleep_quality_poor: woke up multiple times",
+        "stress_high: score 4 (threshold: 4)",
+        "tier1_symptom: dizziness",
+        "tier2_symptom: headache",
+        "protein_low: 55g (target: 85g)",
+        "carbs_high: 180g (target: 100g)",
+        "negative_mood: Sad, Frustrated",
+        "multiple_cravings: Craving Sweet, Craving Salty"
+      ],
+      "has_tier1_symptom": true,
+      "medication_missed": false,
+      "consecutive_days": 1,
+      "send_to_llm": false,
+      "track": "auto",
+      "structured": {
+        "fbs_mgdl": 187,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 0,
+        "exercise_type": null,
+        "exercise_note": null,
+        "weight_kg": 84.2,
+        "medication_taken": true,
+        "sleep_hours": 5.5,
+        "sleep_quality": "woke up multiple times",
+        "stress_score": 4,
+        "moods": [
+          "Sad",
+          "Frustrated",
+          "Craving Sweet",
+          "Craving Salty"
+        ],
+        "symptoms": [
+          "dizziness",
+          "headache"
+        ],
+        "protein_g": 55,
+        "carbs_g": 180,
+        "blood_pressure_systolic": 128,
+        "blood_pressure_diastolic": 82,
+        "fasting_day": false,
+        "screen_time_hours": 5
+      },
+      "unstructured": {
+        "food_diary": "White rice, sambar, poori for dinner at cousin's wedding. Lots of sweets.",
+        "free_text": "Feeling very tired and dizzy since morning. Skipped my walk because of the wedding function. Had a lot of sweets, feeling very guilty. Very stressed about the function arrangements.",
+        "coach_notes": "Third day of poor sleep this week. Stressed about wedding commitments."
+      },
+      "program_history": {
+        "program_start_date": "2026-04-15",
+        "week_number": 6,
+        "initial_fbs_mgdl": 198,
+        "initial_weight_kg": 87.5,
+        "protein_target_g": 85,
+        "carb_target_g": 100,
+        "fasting_protocol": true,
+        "fasting_expected_days_per_week": 5,
+        "strength_training_required": true,
+        "clinical_targets": {
+          "fbs_target_mgdl": 95,
+          "fbs_hypoglycemia_risk_mgdl": 80,
+          "conservative_targets": false
+        },
+        "comorbidities": {
+          "hypertension": false,
+          "thyroid_disorder": true,
+          "chronic_kidney_disease": false,
+          "dyslipidemia": true,
+          "cardiovascular_disease": false,
+          "anemia": false,
+          "vitamin_d_deficiency": true,
+          "pcod": true,
+          "fatty_liver": false,
+          "other": null
+        },
+        "medications": {
+          "diabetes_medication": true,
+          "bp_medication": false,
+          "thyroid_medication": true,
+          "cholesterol_medication": false,
+          "other": "Vitamin D supplement"
+        },
+        "baseline_labs": {
+          "hba1c_pct": 8.2,
+          "cholesterol_ldl": 145,
+          "vitamin_d": 18,
+          "creatinine": 0.8
+        }
+      }
+    },
+    {
+      "name": "Meena Patel",
+      "severity": "High",
+      "confidence": "high",
+      "track": "auto",
+      "reasoning": "Third consecutive missed log this week with last patient contact 4 days ago — no structured data available to assess glucose, medication adherence, symptoms, or program compliance; silence at this frequency carries high clinical significance regardless of travel context.",
+      "signals": [
+        "Third consecutive missed log — meets high threshold of 3+ consecutive days",
+        "Last contact was 4 days ago — engagement gap beyond missed log count",
+        "No glucose data available — cannot confirm medication adherence for diabetes medication, Iron supplement, or Vitamin D",
+        "No symptom data available — Tier 1 symptoms cannot be ruled out",
+        "Week 4 of program — early habit-formation phase; disengagement now carries higher dropout risk",
+        "Baseline FBS 175 mg/dL — patient entered program with clinically elevated glucose; unmonitored gap is higher risk than for a well-controlled patient"
+      ],
+      "has_tier1_symptom": false,
+      "medication_missed": false,
+      "consecutive_days": 3,
+      "glucose_trend": "unknown",
+      "escalate_to_doctor": false,
+      "nudge_risk": false,
+      "source": "llm",
+      "verified": false,
+      "verification_note": "Verification disabled — enable for production",
+      "priority_score": 54
+    },
+    {
+      "name": "Arjun Sharma",
+      "severity": "Medium",
+      "confidence": "high",
+      "track": "auto",
+      "reasoning": "FBS 136 mg/dL above medium threshold (130) with a clear rising trend across three consecutive days (118 → 128 → 136), exercise missed for third consecutive day, carbs 115g against a 90g target, protein 70g against a 90g target, and dyslipidemia noted — multiple compounding signals warrant check-in within 24 hours.",
+      "signals": [
+        "FBS 136 mg/dL — above medium threshold of 130 mg/dL",
+        "FBS rising trend: 118 → 128 → 136 over three consecutive days",
+        "Exercise 0 minutes — third consecutive missed day (medium threshold)",
+        "Carbs 115g vs target 90g — above target by 28%",
+        "Protein 70g vs target 90g — below target by 22%",
+        "Food diary includes tea with sugar and rice alongside roti — high-GI combination consistent with carb excess",
+        "Mood signal: Tired",
+        "Known dyslipidemia — lipid profile sensitive to dietary carb excess and inactivity",
+        "No strength training logged — strength training required per program"
+      ],
+      "has_tier1_symptom": false,
+      "medication_missed": false,
+      "consecutive_days": 3,
+      "glucose_trend": "rising",
+      "escalate_to_doctor": false,
+      "nudge_risk": false,
+      "source": "llm",
+      "verified": false,
+      "verification_note": "Verification disabled — enable for production",
+      "priority_score": 84
+    },
+    {
+      "name": "Fatima Sheikh",
+      "severity": "Medium",
+      "confidence": "high",
+      "track": "auto",
+      "reasoning": "FBS 142 mg/dL above medium threshold of 130 with carbs at 155g against a target of 95g (63% above target) following a social event deviation, no exercise today, no strength training in 5 days per coach notes, protein 65g vs target 80g (19% below), and two craving types selected — however patient's apologetic free text and self-awareness are positive engagement signals, and the social event context reduces weight on the dietary deviation alone.",
+      "signals": [
+        "FBS 142 mg/dL — above medium threshold of 130 mg/dL",
+        "carbs 155g vs target 95g — 63% above target",
+        "protein 65g vs target 80g — 19% below target",
+        "exercise 0 min — daily target not met",
+        "no strength training in 5 days per coach notes — strength gap at medium threshold",
+        "Craving Sweet and Craving Crunchy selected — two craving types, elevated dietary deviation risk next 24 hours",
+        "mood: Frustrated",
+        "acidity/heartburn/reflux symptom noted — Tier 3, monitor",
+        "social event context (office party) — dietary deviation weight reduced per protocol",
+        "patient free text indicates self-awareness and continued engagement — positive behavioural signal"
+      ],
+      "has_tier1_symptom": false,
+      "medication_missed": false,
+      "consecutive_days": 1,
+      "glucose_trend": "improving",
+      "escalate_to_doctor": false,
+      "nudge_risk": false,
+      "source": "llm",
+      "verified": false,
+      "verification_note": "Verification disabled — enable for production",
+      "priority_score": 48
+    }
+  ],
+  "queue_list": [
+    {
+      "name": "Anita Rao",
+      "severity": "Low",
+      "confidence": "low",
+      "track": "queue",
+      "reasoning": "FBS 128 mg/dL in low-flag range with meaningful improvement from baseline 162 mg/dL; week 3 patient with missing weight history, no strength training logged since joining, fasting only 2 of 4 expected days, and comorbidities (thyroid disorder, anemia) that may independently contribute to reported fatigue and boredom — insufficient history to make a confident clinical call; manual review recommended.",
+      "signals": [
+        "FBS 128 mg/dL — above low threshold of 115, below medium threshold of 130",
+        "FBS improved from baseline 162 mg/dL — glucose trend is improving",
+        "fasting only 2 of 4 expected days this week — below consistency target",
+        "no strength training logged since program start — week 3, cardio-only pattern",
+        "sleep 6.5 hrs with trouble falling asleep — below optimal 7–8 hrs, quality flag",
+        "mood: Bored; craving: Sweet — mild compound signal, low weight individually",
+        "fatigue reported in free text — patient has known anemia; source unclear",
+        "stomach discomfort noted — acidity and gas selected; Tier 3 symptoms, monitor only",
+        "carbs 108g vs target 100g — minor deviation, within acceptable range",
+        "protein 70g vs target 75g — within 7% of target, no flag",
+        "week 3 of program — early stage, no weight trend history yet to assess"
+      ],
+      "has_tier1_symptom": false,
+      "medication_missed": false,
+      "consecutive_days": 1,
+      "glucose_trend": "improving",
+      "escalate_to_doctor": false,
+      "nudge_risk": false,
+      "source": "llm",
+      "verified": false,
+      "verification_note": "Verification disabled — enable for production",
+      "priority_score": 53
+    }
+  ],
+  "nudge_list": [
+    {
+      "name": "Rajan Kumar",
+      "severity": "On Track",
+      "confidence": "high",
+      "track": "on_track",
+      "reasoning": "FBS 118 mg/dL is stable within a 116-120 range for 3 weeks — a meaningful improvement from baseline 210 mg/dL; all today's clinical signals are safe (BP 118/76, sleep good, stress 2/5, nutrition on target, medication taken, fasting observed), and the plateau pattern with declining log detail and fasting 3 of 5 expected days warrants a warm coach check-in, not a clinical alert.",
+      "signals": [
+        "FBS 118 mg/dL — above doctor target of 90 but stable; significant improvement from baseline 210 mg/dL",
+        "FBS flat at 116-120 for approximately 3 weeks per coach notes — plateau pattern",
+        "Fasting 3 of 5 expected days — below 5-day protocol target",
+        "No strength training in 10 days — weight training gap present",
+        "Free-text notably brief compared to weeks 1-8 per coach notes — log quality declining",
+        "Exercise: 40 min walk completed — cardio only",
+        "BP 118/76 mmHg — well controlled",
+        "Sleep 7.5 hrs, woke fresh — no concern",
+        "Stress score 2/5 — no concern",
+        "Protein 98g vs target 95g — on target",
+        "Carbs 85g vs target 90g — on target",
+        "Medication taken, fasting day observed today"
+      ],
+      "has_tier1_symptom": false,
+      "medication_missed": false,
+      "consecutive_days": 21,
+      "glucose_trend": "stable",
+      "escalate_to_doctor": false,
+      "nudge_risk": true,
+      "source": "llm",
+      "verified": false,
+      "verification_note": "Verification disabled — enable for production",
+      "priority_score": 116
+    },
+    {
+      "name": "Lakshmi Menon",
+      "severity": "On Track",
+      "confidence": "high",
+      "track": "on_track",
+      "reasoning": "FBS 119 mg/dL is stable within the 116–122 plateau range for ~2.5 weeks with no clinical deterioration — today's structured signals are all safe (BP 120/78, medication taken, nutrition on target, stress 2/5, sleep 7hrs) — however, coach notes document a clear disengagement and plateau pattern: one-word logs for 8 days, fasting down to 2/5 expected days, no strength training in 12 days, and flat glucose trend since week 6; nudge_risk is set true for a warm check-in.",
+      "signals": [
+        "FBS 119 mg/dL — stable plateau at 116–122 for ~2.5 weeks, not a new clinical deviation",
+        "glucose trend flat — not rising, not improving",
+        "log quality declining — one-word entries for 8 consecutive days vs detailed entries in weeks 1–6",
+        "fasting 2 of 5 expected days this week, down from 5/5",
+        "no strength training in 12 days — strength training required per program",
+        "today's exercise: 30 min walk only, note says 'Short walk'",
+        "free text 'Ok.' — minimal engagement signal",
+        "food diary entry minimal: 'Idli. Dal rice.' — no portion or context detail",
+        "PCOD and fatty liver comorbidities — fasting and strength training consistency are particularly relevant for metabolic benefit in this profile",
+        "strong initial progress (FBS 205 → ~119, weight 79 → 73 kg) now stalling"
+      ],
+      "has_tier1_symptom": false,
+      "medication_missed": false,
+      "consecutive_days": 18,
+      "glucose_trend": "stable",
+      "escalate_to_doctor": false,
+      "nudge_risk": true,
+      "source": "llm",
+      "verified": false,
+      "verification_note": "Verification disabled — enable for production",
+      "priority_score": 106
+    }
+  ],
+  "on_track": [
+    {
+      "name": "Karthik Iyer",
+      "severity": "On Track",
+      "confidence": "high",
+      "source": "rules",
+      "reasoning": "No deviations detected across all signals.",
+      "priority_score": 0,
+      "deviations": [],
+      "has_tier1_symptom": false,
+      "medication_missed": false,
+      "consecutive_days": 0,
+      "send_to_llm": false,
+      "track": "on_track",
+      "structured": {
+        "fbs_mgdl": 112,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 45,
+        "exercise_type": "full body weights",
+        "exercise_note": "Good session at gym, completed all sets, felt strong",
+        "weight_kg": 88.0,
+        "medication_taken": true,
+        "sleep_hours": 7.5,
+        "sleep_quality": "slept well woke fresh",
+        "stress_score": 1,
+        "moods": [
+          "Happy"
+        ],
+        "symptoms": [],
+        "protein_g": 99,
+        "carbs_g": 82,
+        "blood_pressure_systolic": 116,
+        "blood_pressure_diastolic": 74,
+        "fasting_day": true,
+        "screen_time_hours": 1.5
+      },
+      "unstructured": {
+        "food_diary": "Oats for breakfast, large salad, grilled fish for dinner.",
+        "free_text": "Feeling absolutely wonderful this week. Full body weights session today — really enjoying the strength training now. Very happy with my progress.",
+        "coach_notes": "Consistently strong. Doing both cardio and weights. Fasting 5 of 5 days. Model patient."
+      },
+      "program_history": {
+        "program_start_date": "2026-03-15",
+        "week_number": 11,
+        "initial_fbs_mgdl": 195,
+        "initial_weight_kg": 93.5,
+        "protein_target_g": 95,
+        "carb_target_g": 85,
+        "fasting_protocol": true,
+        "fasting_expected_days_per_week": 5,
+        "strength_training_required": true,
+        "clinical_targets": {
+          "fbs_target_mgdl": 90,
+          "fbs_hypoglycemia_risk_mgdl": 80,
+          "conservative_targets": false
+        },
+        "comorbidities": {
+          "hypertension": false,
+          "thyroid_disorder": false,
+          "chronic_kidney_disease": false,
+          "dyslipidemia": false,
+          "cardiovascular_disease": false,
+          "anemia": false,
+          "vitamin_d_deficiency": false,
+          "pcod": false,
+          "fatty_liver": false,
+          "other": null
+        },
+        "medications": {
+          "diabetes_medication": true,
+          "bp_medication": false,
+          "thyroid_medication": false,
+          "cholesterol_medication": false,
+          "other": null
+        },
+        "baseline_labs": {
+          "hba1c_pct": 8.5,
+          "cholesterol_ldl": 122,
+          "vitamin_d": 38,
+          "creatinine": 0.9
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "high": 4,
+    "medium": 2,
+    "low": 0,
+    "queue": 1,
+    "on_track": 1,
+    "escalate": 1
+  }
+}

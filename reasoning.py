@@ -1,18 +1,19 @@
 import json
 import asyncio
 import os
-from openai import AsyncOpenAI
+import anthropic
+from anthropic import AsyncAnthropic
 from prompt import load_protocol_files, build_prompt
 
 # Read API key from Streamlit secrets (deployed) or env var (local)
 def get_api_key():
     try:
         import streamlit as st
-        return st.secrets["OPENAI_API_KEY"]
+        return st.secrets["ANTHROPIC_API_KEY"]
     except Exception:
-        return os.environ.get("OPENAI_API_KEY", "")
+        return os.environ.get("ANTHROPIC_API_KEY", "")
 
-client = AsyncOpenAI(api_key=get_api_key())
+client = AsyncAnthropic(api_key=get_api_key())
 
 # Dual loop verification — disabled for MVP
 # Requires higher API tier (100K+ TPM) to run reliably
@@ -97,48 +98,50 @@ async def reason_one_patient(patient, alert_guide, thresholds,
             user_message += f"\n\nPrevious attempt feedback: {feedback}"
 
         try:
-            response = await client.chat.completions.create(
-                model="gpt-4o",
+            response = await client.messages.create(
+                model="claude-sonnet-4-6",
+                system=system_prompt,
                 messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user",   "content": user_message}
+                    {"role": "user", "content": user_message}
                 ],
-                temperature=0.1,
-                max_tokens=800,
-                response_format={"type": "json_object"}
+                max_tokens=1200
             )
-            raw = response.choices[0].message.content
+            raw = response.content[0].text if response.content else ""
+            # Strip markdown code fences — Sonnet wraps JSON in ```json blocks
+            if raw.startswith("```"):
+                lines = raw.split("\n")
+                lines = [l for l in lines if not l.strip().startswith("```")]
+                raw = "\n".join(lines).strip()
+            if not raw:
+                raise ValueError("Empty response from model")
             result = json.loads(raw)
             result["name"] = patient.get("name")
             result["source"] = "llm"
             await asyncio.sleep(2)   # brief pause between calls
             return result
 
+        except anthropic.RateLimitError:
+            print(f"  ⏳ Rate limited — waiting 30s...")
+            await asyncio.sleep(30)
+            return None
         except Exception as e:
-            error_msg = str(e)
-            if "429" in error_msg or "rate_limit" in error_msg.lower():
-                print(f"  ⏳ Rate limited — waiting 30s...")
-                await asyncio.sleep(30)
-            else:
-                print(f"  ✗ Call failed for {patient.get('name')}: {e}")
+            print(f"  ✗ Call failed for {patient.get('name')}: {e}")
             return None
 
 
 # ── Guardrails verifier — Loop 2 (optional) ──────────────────
-async def verify_response(patient_name, llm_result):
+async def verify_response(patient_name, llm_result, semaphore=None):
     """
     Loop 2 — Verifies output against guardrails.
     Only runs when ENABLE_VERIFICATION is True.
-    Requires higher API tier to avoid rate limits.
 
     NOTE FOR DEMO:
-    This is disabled (ENABLE_VERIFICATION = False) because
-    the verification loop doubles token usage and hits the
-    30K TPM limit on the free/starter OpenAI tier.
-    Enable this with a Tier 1+ OpenAI account (100K TPM).
-    The architecture is ready — just flip the flag above.
+    Disabled (ENABLE_VERIFICATION = False) for MVP.
+    Architecture is ready — flip the flag above to enable.
     """
-    async with SEMAPHORE:
+    if semaphore is None:
+        semaphore = asyncio.Semaphore(2)
+    async with semaphore:
         verification_prompt = f"""Safety check for MadhuMitra alert.
 Return JSON: {{"passed": true/false, "reason": "brief"}}
 
@@ -156,14 +159,12 @@ Recommending coach contact = PASS.
 ALERT: {json.dumps(llm_result, indent=2)}"""
 
         try:
-            response = await client.chat.completions.create(
-                model="gpt-4o",
+            response = await client.messages.create(
+                model="claude-sonnet-4-6",
                 messages=[{"role": "user", "content": verification_prompt}],
-                temperature=0,
-                max_tokens=100,
-                response_format={"type": "json_object"}
+                max_tokens=100
             )
-            result = json.loads(response.choices[0].message.content)
+            result = json.loads(response.content[0].text)
             await asyncio.sleep(1)
             return result.get("passed", False), result.get("reason", "")
         except Exception as e:
@@ -204,7 +205,7 @@ async def reason_with_retry(patient, alert_guide, thresholds,
 
         # Optional Loop 2 verification
         if ENABLE_VERIFICATION:
-            passed, reason = await verify_response(name, result)
+            passed, reason = await verify_response(name, result, semaphore=semaphore)
             if passed:
                 print(f"  ✓ {name}: verified — {result.get('severity')} / {result.get('track')}")
                 result["verified"] = True

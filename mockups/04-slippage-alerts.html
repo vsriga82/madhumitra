@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MadhuMitra — Slippage Alerts</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-600: #0D9488;
+    --teal-500: #14B8A6;
+    --orange-600: #EA580C;
+    --orange-500: #F97316;
+    --orange-100: #FFEDD5;
+    --orange-50:  #FFF7ED;
+    --purple-600: #7C3AED;
+    --purple-100: #EDE9FE;
+    --urgent:   #EF4444;
+    --urgent-bg:#FEF2F2;
+    --watch:    #F59E0B;
+    --watch-bg: #FFFBEB;
+    --routine:  #10B981;
+    --routine-bg:#ECFDF5;
+    --gray-900: #111827;
+    --gray-700: #374151;
+    --gray-600: #4B5563;
+    --gray-500: #6B7280;
+    --gray-400: #9CA3AF;
+    --gray-300: #D1D5DB;
+    --gray-200: #E5E7EB;
+    --gray-100: #F3F4F6;
+    --gray-50:  #F9FAFB;
+    --white:    #FFFFFF;
+    --radius:   10px;
+    --shadow:   0 1px 3px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--orange-50);
+    display: flex;
+    justify-content: center;
+    padding: 0 0 40px;
+  }
+  .phone-frame { width: 390px; min-height: 100vh; background: var(--gray-50); }
+
+  .status-bar {
+    background: #92400E;
+    padding: 12px 20px 8px;
+    display: flex; justify-content: space-between;
+    color: white; font-size: 11px; font-weight: 500;
+  }
+  .header {
+    background: linear-gradient(135deg, #92400E 0%, #B45309 100%);
+    padding: 4px 16px 16px;
+    color: white;
+  }
+  .header-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .back-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: white; text-decoration: none;
+  }
+  .header h1 { font-size: 17px; font-weight: 700; }
+
+  /* Explainer banner */
+  .explainer {
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.92;
+  }
+  .explainer strong { opacity: 1; }
+
+  /* Count row */
+  .count-row {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px 6px;
+  }
+  .count-card {
+    flex: 1;
+    background: var(--white);
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .count-val { font-size: 22px; font-weight: 700; }
+  .count-lbl { font-size: 10px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+  .orange { color: var(--orange-600); }
+  .purple { color: var(--purple-600); }
+  .green  { color: var(--routine); }
+
+  /* Section header */
+  .section-header {
+    padding: 10px 16px 6px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--orange-600);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-note { font-size: 11px; color: var(--gray-500); }
+
+  /* Slippage card — distinct style from clinical cards */
+  .slip-card {
+    margin: 0 16px 10px;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid #FED7AA;
+    overflow: hidden;
+  }
+  .slip-card .card-accent {
+    height: 4px;
+    background: linear-gradient(90deg, var(--orange-500), #FCD34D);
+  }
+  .slip-body { padding: 12px 14px; }
+  .slip-row1 {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; margin-bottom: 6px;
+  }
+  .slip-name { font-size: 14px; font-weight: 700; color: var(--gray-900); }
+  .slip-badge {
+    font-size: 10px; font-weight: 700;
+    padding: 2px 9px; border-radius: 20px;
+  }
+  .badge-engagement { background: var(--orange-100); color: var(--orange-600); }
+  .badge-plateau    { background: var(--purple-100); color: var(--purple-600); }
+  .badge-log-drop   { background: #FEF9C3; color: #713F12; }
+
+  .slip-meta { font-size: 11px; color: var(--gray-500); margin-bottom: 8px; }
+  .slip-reason { font-size: 12px; color: var(--gray-700); line-height: 1.5; margin-bottom: 10px; }
+
+  /* Risk indicators */
+  .risk-indicators {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
+  }
+  .risk-chip {
+    font-size: 10px; font-weight: 600;
+    padding: 3px 8px; border-radius: 20px;
+    border: 1px solid;
+  }
+  .risk-chip.orange { background: var(--orange-100); color: var(--orange-600); border-color: #FED7AA; }
+  .risk-chip.purple { background: var(--purple-100); color: var(--purple-600); border-color: #DDD6FE; }
+  .risk-chip.yellow { background: #FEF9C3; color: #713F12; border-color: #FEF08A; }
+
+  /* Mini trend chart inline */
+  .mini-trend {
+    display: flex; align-items: flex-end; gap: 3px; height: 32px;
+    margin-bottom: 10px;
+  }
+  .mt-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; }
+
+  /* Card actions */
+  .slip-actions {
+    border-top: 1px solid var(--gray-100);
+    display: flex;
+  }
+  .slip-btn {
+    flex: 1; padding: 9px 0;
+    font-size: 12px; font-weight: 500;
+    text-align: center; color: var(--gray-500);
+    background: none; border: none; cursor: pointer;
+    border-right: 1px solid var(--gray-100);
+  }
+  .slip-btn:last-child { border-right: none; }
+  .slip-btn:hover { background: var(--gray-50); }
+  .slip-btn.primary { color: var(--orange-600); font-weight: 600; }
+  .slip-btn.snooze  { color: var(--purple-600); }
+
+  /* Snooze modal hint */
+  .snooze-hint {
+    margin: 0 16px 8px;
+    background: var(--purple-100);
+    border: 1px solid #DDD6FE;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #4C1D95;
+  }
+  .snooze-hint .sh-title { font-weight: 700; margin-bottom: 5px; }
+  .snooze-options { display: flex; gap: 6px; margin-top: 8px; }
+  .snooze-opt {
+    flex: 1; padding: 6px;
+    border: 1px solid #C4B5FD;
+    border-radius: 6px;
+    font-size: 11px; font-weight: 600;
+    color: var(--purple-600); text-align: center;
+    cursor: pointer; background: var(--white);
+  }
+  .snooze-opt:hover { background: var(--purple-100); }
+
+  /* Section separator */
+  .section-sep {
+    margin: 12px 16px 6px;
+    border-top: 1px dashed var(--gray-300);
+    padding-top: 10px;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--purple-600);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* Resolved row */
+  .resolved-row {
+    margin: 0 16px 6px;
+    background: var(--routine-bg);
+    border: 1px solid #A7F3D0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .resolved-icon { font-size: 16px; }
+  .resolved-info { flex: 1; }
+  .resolved-name { font-size: 13px; font-weight: 600; color: #065F46; }
+  .resolved-sub  { font-size: 11px; color: #047857; margin-top: 1px; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    background: var(--white); border-top: 1px solid var(--gray-200);
+    display: flex; padding: 8px 0 12px; margin-top: 12px;
+  }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--gray-400); font-weight: 500; cursor: pointer; padding: 4px 0; }
+  .nav-item.active { color: var(--orange-600); }
+  .nav-icon { font-size: 20px; }
+
+  .watermark { text-align: center; padding: 8px; font-size: 10px; color: var(--gray-400); border-top: 1px solid var(--gray-100); }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+
+  <div class="status-bar">
+    <span>7:52 AM</span>
+    <span>&#9679;&#9679;&#9679; 4G</span>
+  </div>
+
+  <div class="header">
+    <div class="header-row">
+      <a href="01-morning-brief.html" class="back-btn">&#8592;</a>
+      <h1>&#9888;&#65039; Slippage Alerts</h1>
+    </div>
+    <div class="explainer">
+      <strong>Engagement risk, not clinical emergency.</strong> These patients show patterns like declining log frequency, glucose plateau, or motivation drop in weeks 6–15. They need a warm check-in — not urgent clinical action.
+    </div>
+  </div>
+
+  <!-- Count summary -->
+  <div class="count-row">
+    <div class="count-card">
+      <div class="count-val orange">2</div>
+      <div class="count-lbl">Engagement Drop</div>
+    </div>
+    <div class="count-card">
+      <div class="count-val purple">1</div>
+      <div class="count-lbl">Glucose Plateau</div>
+    </div>
+    <div class="count-card">
+      <div class="count-val green">3</div>
+      <div class="count-lbl">Resolved</div>
+    </div>
+  </div>
+
+  <!-- Section: Engagement drop -->
+  <div class="section-header">
+    <span class="section-label">&#128293; Engagement Drop</span>
+    <span class="section-note">Check-in recommended</span>
+  </div>
+
+  <!-- Slip card 1 -->
+  <div class="slip-card">
+    <div class="card-accent"></div>
+    <div class="slip-body">
+      <div class="slip-row1">
+        <div class="slip-name">Priya Chandrasekaran</div>
+        <span class="slip-badge badge-engagement">Log Drop</span>
+      </div>
+      <div class="slip-meta">Age 44 · F · Week 10 · Phase 3</div>
+      <div class="slip-reason">Logging frequency dropped from 92% in weeks 1–8 to 45% in the last 10 days. Last 3 logs are partial (missing glucose readings). No free-text notes in past 5 days — this is unusual for her.</div>
+
+      <div class="risk-indicators">
+        <span class="risk-chip orange">&#128197; Log freq: 45% this wk</span>
+        <span class="risk-chip yellow">&#128197; Was: 92% wks 1–8</span>
+        <span class="risk-chip orange">&#9889; No exercise logs 7d</span>
+      </div>
+
+      <!-- Mini log frequency trend -->
+      <div style="font-size:10px;color:var(--gray-500);margin-bottom:4px;">Logging % per week:</div>
+      <div class="mini-trend">
+        <div class="mt-bar" style="height:90%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:95%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:92%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:88%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:90%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:85%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:80%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:65%;background:var(--watch);"></div>
+        <div class="mt-bar" style="height:50%;background:var(--watch);"></div>
+        <div class="mt-bar" style="height:45%;background:var(--orange-500);outline:2px solid var(--orange-500);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--gray-400);margin-bottom:10px;">
+        <span>Wk 1</span><span>Wk 5</span><span>This wk</span>
+      </div>
+    </div>
+    <div class="slip-actions">
+      <button class="slip-btn primary" onclick="window.location.href='06-coach-notes.html'">&#128222; Check In</button>
+      <button class="slip-btn" onclick="window.location.href='02-patient-profile.html'">View Profile</button>
+      <button class="slip-btn snooze">&#128164; Snooze</button>
+    </div>
+  </div>
+
+  <!-- Snooze hint (shown after snooze tap) -->
+  <div class="snooze-hint">
+    <div class="sh-title">&#128164; Snooze this alert</div>
+    <div>Select a reason — alert will return after the period ends.</div>
+    <div class="snooze-options">
+      <div class="snooze-opt">2 days<br><span style="font-size:9px;font-weight:400;">Patient is travelling</span></div>
+      <div class="snooze-opt">5 days<br><span style="font-size:9px;font-weight:400;">Family event</span></div>
+      <div class="snooze-opt">1 week<br><span style="font-size:9px;font-weight:400;">Already followed up</span></div>
+    </div>
+  </div>
+
+  <!-- Slip card 2 -->
+  <div class="slip-card">
+    <div class="card-accent"></div>
+    <div class="slip-body">
+      <div class="slip-row1">
+        <div class="slip-name">Mohan Krishnaswamy</div>
+        <span class="slip-badge badge-engagement">Disengaged</span>
+      </div>
+      <div class="slip-meta">Age 58 · M · Week 8 · Phase 2</div>
+      <div class="slip-reason">3 missed logs in a row (Jun 3–5). Prior coach note from May 28: "Patient mentioned festival season — expects irregular schedule." FBS reading on Jun 2 was 152 mg/dL (elevated). Pattern suggests disengagement, not just busy schedule.</div>
+
+      <div class="risk-indicators">
+        <span class="risk-chip orange">&#10060; 3 missed logs</span>
+        <span class="risk-chip yellow">&#128197; Last log: Jun 2</span>
+        <span class="risk-chip orange">FBS 152 trending up</span>
+      </div>
+      <div class="mini-trend">
+        <div class="mt-bar" style="height:88%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:100%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:92%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:75%;background:var(--watch);"></div>
+        <div class="mt-bar" style="height:60%;background:var(--watch);"></div>
+        <div class="mt-bar" style="height:80%;background:var(--teal-500);"></div>
+        <div class="mt-bar" style="height:70%;background:var(--watch);"></div>
+        <div class="mt-bar" style="height:0%;background:var(--gray-200);border:1px solid var(--gray-300);height:8px;"></div>
+        <div class="mt-bar" style="height:0%;background:var(--gray-200);border:1px solid var(--gray-300);height:8px;"></div>
+        <div class="mt-bar" style="height:0%;background:var(--urgent);outline:2px solid var(--urgent);height:8px;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--gray-400);margin-bottom:10px;">
+        <span>Wk 1</span><span>Wk 5</span><span>Last 3d: missed</span>
+      </div>
+    </div>
+    <div class="slip-actions">
+      <button class="slip-btn primary" onclick="window.location.href='06-coach-notes.html'">&#128222; Check In</button>
+      <button class="slip-btn" onclick="window.location.href='02-patient-profile.html'">View Profile</button>
+      <button class="slip-btn snooze">&#128164; Snooze</button>
+    </div>
+  </div>
+
+  <!-- Section: Glucose plateau -->
+  <div class="section-sep">
+    <span>&#128200;</span> Glucose Plateau
+  </div>
+
+  <!-- Slip card 3 — plateau -->
+  <div class="slip-card" style="border-color:#DDD6FE;">
+    <div class="card-accent" style="background:linear-gradient(90deg,var(--purple-600),#A78BFA);"></div>
+    <div class="slip-body">
+      <div class="slip-row1">
+        <div class="slip-name">Lakshmi Venkataraman</div>
+        <span class="slip-badge badge-plateau">Plateau</span>
+      </div>
+      <div class="slip-meta">Age 51 · F · Week 12 · Phase 3</div>
+      <div class="slip-reason">FBS has been between 118–126 mg/dL for 18 days without further improvement. Protocol target is &lt;100. Logging is consistent (88%) but results aren't improving. This is a typical week 10–14 plateau — may need protocol adjustment discussion.</div>
+
+      <div class="risk-indicators">
+        <span class="risk-chip purple">FBS 118–126 for 18d</span>
+        <span class="risk-chip purple">&#9660; No progress since May 20</span>
+        <span class="risk-chip yellow">Logging: 88% (good)</span>
+      </div>
+      <div class="mini-trend">
+        <div class="mt-bar" style="height:90%;background:#7C3AED;opacity:0.4;"></div>
+        <div class="mt-bar" style="height:85%;background:#7C3AED;opacity:0.5;"></div>
+        <div class="mt-bar" style="height:78%;background:#7C3AED;opacity:0.6;"></div>
+        <div class="mt-bar" style="height:70%;background:#7C3AED;opacity:0.7;"></div>
+        <div class="mt-bar" style="height:60%;background:#7C3AED;opacity:0.75;"></div>
+        <div class="mt-bar" style="height:55%;background:#7C3AED;opacity:0.8;"></div>
+        <div class="mt-bar" style="height:52%;background:#7C3AED;"></div>
+        <div class="mt-bar" style="height:54%;background:#7C3AED;"></div>
+        <div class="mt-bar" style="height:50%;background:#7C3AED;"></div>
+        <div class="mt-bar" style="height:52%;background:#7C3AED;outline:2px solid #7C3AED;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--gray-400);margin-bottom:10px;">
+        <span>Wk 3 (high)</span><span>Wk 8</span><span>Now: plateau</span>
+      </div>
+    </div>
+    <div class="slip-actions">
+      <button class="slip-btn" style="color:var(--purple-600);font-weight:600;" onclick="window.location.href='06-coach-notes.html'">&#128203; Add Note</button>
+      <button class="slip-btn" onclick="window.location.href='02-patient-profile.html'">View Profile</button>
+      <button class="slip-btn snooze">&#128164; Snooze</button>
+    </div>
+  </div>
+
+  <!-- Resolved section -->
+  <div class="section-header" style="margin-top:8px;">
+    <span class="section-label" style="color:var(--routine);">&#9989; Recently Resolved</span>
+  </div>
+
+  <div class="resolved-row">
+    <span class="resolved-icon">&#9989;</span>
+    <div class="resolved-info">
+      <div class="resolved-name">Nalini Subramaniam</div>
+      <div class="resolved-sub">Engagement drop resolved — re-engaged after coach call Jun 2. Logging back to 90%.</div>
+    </div>
+  </div>
+  <div class="resolved-row">
+    <span class="resolved-icon">&#9989;</span>
+    <div class="resolved-info">
+      <div class="resolved-name">Rajesh Padmanabhan</div>
+      <div class="resolved-sub">Plateau broken — FBS down to 105 mg/dL after exercise protocol adjustment. Snoozed 1 wk.</div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="window.location.href='01-morning-brief.html'"><span class="nav-icon">&#127968;</span><span>Brief</span></div>
+    <div class="nav-item" onclick="window.location.href='02-patient-profile.html'"><span class="nav-icon">&#128101;</span><span>Patients</span></div>
+    <div class="nav-item active"><span class="nav-icon">&#9888;</span><span>Alerts</span></div>
+    <div class="nav-item" onclick="window.location.href='06-coach-notes.html'"><span class="nav-icon">&#128203;</span><span>Notes</span></div>
+    <div class="nav-item" onclick="window.location.href='05-operator-dashboard.html'"><span class="nav-icon">&#128200;</span><span>Program</span></div>
+  </div>
+
+  <div class="watermark">MadhuMitra · Screen 4 of 7 · Slippage Alerts · v1.0 · <a href="index.html" style="color:var(--teal-600);">All Screens</a></div>
+
+</div>
+</body>
+</html>

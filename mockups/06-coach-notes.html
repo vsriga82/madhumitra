@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MadhuMitra — Coach Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-600: #0D9488;
+    --teal-500: #14B8A6;
+    --teal-100: #CCFBF1;
+    --teal-50:  #F0FDFA;
+    --urgent:   #EF4444;
+    --urgent-bg:#FEF2F2;
+    --watch:    #F59E0B;
+    --watch-bg: #FFFBEB;
+    --routine:  #10B981;
+    --routine-bg:#ECFDF5;
+    --gray-900: #111827;
+    --gray-700: #374151;
+    --gray-600: #4B5563;
+    --gray-500: #6B7280;
+    --gray-400: #9CA3AF;
+    --gray-300: #D1D5DB;
+    --gray-200: #E5E7EB;
+    --gray-100: #F3F4F6;
+    --gray-50:  #F9FAFB;
+    --white:    #FFFFFF;
+    --radius:   10px;
+    --shadow:   0 1px 3px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #F0FDFA;
+    display: flex;
+    justify-content: center;
+    padding: 0 0 40px;
+  }
+  .phone-frame { width: 390px; min-height: 100vh; background: var(--gray-50); }
+
+  .status-bar {
+    background: var(--teal-600);
+    padding: 12px 20px 8px;
+    display: flex; justify-content: space-between;
+    color: white; font-size: 11px; font-weight: 500;
+  }
+  .header {
+    background: var(--teal-600);
+    padding: 4px 16px 16px;
+    color: white;
+  }
+  .header-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .back-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: white; text-decoration: none;
+  }
+  .header h1 { font-size: 17px; font-weight: 700; flex: 1; }
+
+  /* Patient context strip */
+  .patient-strip {
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .avatar-sm {
+    width: 36px; height: 36px;
+    border-radius: 50%; background: rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: white;
+  }
+  .ps-name  { font-size: 14px; font-weight: 700; }
+  .ps-meta  { font-size: 11px; opacity: 0.8; margin-top: 1px; }
+  .ps-badge {
+    margin-left: auto;
+    font-size: 10px; font-weight: 700;
+    background: rgba(239,68,68,0.3); color: #FCA5A5;
+    padding: 2px 8px; border-radius: 20px;
+  }
+
+  /* Form card */
+  .form-card {
+    margin: 12px 16px 0;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .form-card-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 12px; font-weight: 700;
+    color: var(--gray-900); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .form-body { padding: 14px; }
+
+  /* Action type selector */
+  .action-types { display: flex; gap: 8px; margin-bottom: 14px; }
+  .type-btn {
+    flex: 1; padding: 10px 6px;
+    border-radius: 8px;
+    border: 1.5px solid var(--gray-200);
+    background: var(--white);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .type-btn .type-icon { font-size: 18px; margin-bottom: 3px; display: block; }
+  .type-btn .type-label { font-size: 11px; font-weight: 600; color: var(--gray-600); display: block; }
+  .type-btn.selected-called {
+    border-color: #3B82F6; background: #EFF6FF;
+  }
+  .type-btn.selected-called .type-label { color: #1D4ED8; }
+  .type-btn.selected-messaged {
+    border-color: #8B5CF6; background: #F5F3FF;
+  }
+  .type-btn.selected-escalated {
+    border-color: var(--urgent); background: var(--urgent-bg);
+  }
+
+  /* Form fields */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--gray-700); margin-bottom: 6px;
+  }
+  .field label span { font-weight: 400; color: var(--gray-400); font-size: 11px; }
+  textarea, input[type=text], select, input[type=date] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    color: var(--gray-900);
+    background: var(--white);
+    transition: border-color 0.15s;
+    outline: none;
+    resize: none;
+  }
+  textarea { min-height: 90px; line-height: 1.5; }
+  textarea:focus, input:focus, select:focus {
+    border-color: var(--teal-500);
+    box-shadow: 0 0 0 3px rgba(20,184,166,0.12);
+  }
+  textarea.active {
+    border-color: var(--teal-500);
+    box-shadow: 0 0 0 3px rgba(20,184,166,0.12);
+  }
+
+  .char-count { font-size: 10px; color: var(--gray-400); text-align: right; margin-top: 4px; }
+
+  /* Tag row */
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag-chip {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1.5px solid var(--gray-200);
+    background: var(--white);
+    color: var(--gray-600);
+    cursor: pointer;
+  }
+  .tag-chip.selected { background: var(--teal-100); color: var(--teal-600); border-color: var(--teal-500); }
+
+  /* Follow-up row */
+  .followup-row {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .followup-row input { flex: 1; }
+  .followup-badge {
+    font-size: 11px; font-weight: 600;
+    background: #EFF6FF; color: #1D4ED8;
+    padding: 6px 10px; border-radius: 6px;
+    white-space: nowrap;
+  }
+
+  /* Submit buttons */
+  .btn-row {
+    padding: 14px;
+    display: flex; gap: 8px;
+  }
+  .btn {
+    flex: 1; padding: 12px 0;
+    border-radius: 8px;
+    font-size: 13px; font-weight: 700;
+    border: none; cursor: pointer;
+    text-align: center;
+  }
+  .btn-primary { background: var(--teal-600); color: white; }
+  .btn-primary:hover { background: var(--teal-700, #0F766E); }
+  .btn-secondary { background: var(--white); color: var(--gray-700); border: 1.5px solid var(--gray-300); }
+
+  /* Notes history section */
+  .history-section {
+    margin: 12px 16px 0;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .history-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .history-title { font-size: 12px; font-weight: 700; color: var(--gray-900); text-transform: uppercase; letter-spacing: 0.05em; }
+  .history-count { font-size: 11px; color: var(--gray-500); }
+
+  /* Note item */
+  .note-item {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--gray-100);
+    position: relative;
+  }
+  .note-item:last-child { border-bottom: none; }
+  .note-meta-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+  .note-tag {
+    font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 20px;
+  }
+  .tag-called    { background: #EFF6FF; color: #1E40AF; }
+  .tag-messaged  { background: #F5F3FF; color: #5B21B6; }
+  .tag-escalated { background: var(--urgent-bg); color: var(--urgent); }
+  .note-date { font-size: 11px; color: var(--gray-400); }
+  .note-followup { margin-left: auto; font-size: 10px; color: var(--teal-600); font-weight: 600; background: var(--teal-50); padding: 2px 7px; border-radius: 20px; border: 1px solid var(--teal-100); }
+  .note-text { font-size: 12px; color: var(--gray-700); line-height: 1.55; }
+  .note-signals {
+    margin-top: 6px;
+    display: flex; gap: 4px; flex-wrap: wrap;
+  }
+  .ns-chip {
+    font-size: 10px; background: var(--gray-100); color: var(--gray-500);
+    padding: 1px 6px; border-radius: 20px;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    background: var(--white); border-top: 1px solid var(--gray-200);
+    display: flex; padding: 8px 0 12px; margin-top: 14px;
+  }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--gray-400); font-weight: 500; cursor: pointer; padding: 4px 0; }
+  .nav-item.active { color: var(--teal-600); }
+  .nav-icon { font-size: 20px; }
+
+  .watermark { text-align: center; padding: 8px; font-size: 10px; color: var(--gray-400); border-top: 1px solid var(--gray-100); }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+
+  <div class="status-bar">
+    <span>7:55 AM</span>
+    <span>&#9679;&#9679;&#9679; 4G</span>
+  </div>
+
+  <div class="header">
+    <div class="header-row">
+      <a href="02-patient-profile.html" class="back-btn">&#8592;</a>
+      <h1>Add Coach Note</h1>
+    </div>
+    <div class="patient-strip">
+      <div class="avatar-sm">RI</div>
+      <div>
+        <div class="ps-name">Ramesh Iyer</div>
+        <div class="ps-meta">Age 52 · Week 8 · FBS 218 mg/dL today</div>
+      </div>
+      <span class="ps-badge">Urgent</span>
+    </div>
+  </div>
+
+  <!-- Log form -->
+  <div class="form-card">
+    <div class="form-card-header">Log an Intervention</div>
+    <div class="form-body">
+
+      <!-- Action type -->
+      <div class="field">
+        <label>Action Type</label>
+        <div class="action-types">
+          <div class="type-btn selected-called" onclick="selectType(this, 'called')">
+            <span class="type-icon">&#128222;</span>
+            <span class="type-label">Called</span>
+          </div>
+          <div class="type-btn" onclick="selectType(this, 'messaged')">
+            <span class="type-icon">&#128172;</span>
+            <span class="type-label">Messaged</span>
+          </div>
+          <div class="type-btn" onclick="selectType(this, 'video')">
+            <span class="type-icon">&#127916;</span>
+            <span class="type-label">Video call</span>
+          </div>
+          <div class="type-btn" onclick="selectType(this, 'escalated')">
+            <span class="type-icon">&#128680;</span>
+            <span class="type-label">Escalated</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Note text -->
+      <div class="field">
+        <label>Note <span>(what did you discuss or observe?)</span></label>
+        <textarea class="active" placeholder="e.g. Called Ramesh — discussed medication adherence. He mentioned work stress causing him to forget evening dose. Agreed to set two phone alarms. Will check back in 2 days.">Called Ramesh — discussed medication adherence. He mentioned work stress causing him to forget evening dose. Agreed to set two phone alarms (7pm and 9pm). BP concern flagged — suggested re-checking at pharmacy tomorrow morning. Patient receptive and willing to try.</textarea>
+        <div class="char-count">218 / 500 characters</div>
+      </div>
+
+      <!-- Intervention tags -->
+      <div class="field">
+        <label>Intervention Focus <span>(select all that apply)</span></label>
+        <div class="tag-row">
+          <span class="tag-chip selected">Medication</span>
+          <span class="tag-chip selected">Stress management</span>
+          <span class="tag-chip">Food guidance</span>
+          <span class="tag-chip">Exercise</span>
+          <span class="tag-chip">BP monitoring</span>
+          <span class="tag-chip">Doctor escalation</span>
+        </div>
+      </div>
+
+      <!-- Outcome -->
+      <div class="field">
+        <label>Outcome</label>
+        <select>
+          <option>Patient receptive — agreed to action</option>
+          <option>No answer — left voicemail</option>
+          <option>Patient acknowledged — no commitment</option>
+          <option>Escalated to doctor</option>
+          <option>Referral made</option>
+        </select>
+      </div>
+
+      <!-- Follow-up reminder -->
+      <div class="field">
+        <label>Follow-up Reminder <span>(optional)</span></label>
+        <div class="followup-row">
+          <input type="date" value="2026-06-08">
+          <span class="followup-badge">&#128197; In 2 days</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="window.location.href='02-patient-profile.html'">Cancel</button>
+      <button class="btn btn-primary" onclick="showSaved()">&#10003; Save Note</button>
+    </div>
+  </div>
+
+  <!-- Success flash (hidden, shown on save) -->
+  <div id="save-success" style="display:none;margin:10px 16px 0;background:var(--routine-bg);border:1px solid #A7F3D0;border-radius:8px;padding:10px 14px;font-size:12px;color:#065F46;font-weight:600;">
+    &#9989; Note saved · Follow-up reminder set for Jun 8, 2026
+  </div>
+
+  <!-- Previous notes history -->
+  <div class="history-section">
+    <div class="history-header">
+      <span class="history-title">Previous Notes — Ramesh Iyer</span>
+      <span class="history-count">5 notes total</span>
+    </div>
+
+    <div class="note-item">
+      <div class="note-meta-row">
+        <span class="note-tag tag-called">Called</span>
+        <span class="note-date">Jun 3, 2026 · 10:15 AM</span>
+        <span class="note-followup">&#9654; Reminder: Jun 5</span>
+      </div>
+      <div class="note-text">Discussed work stress triggering medication skips. Patient acknowledged missing Mon/Tue doses. Reminded about importance of consistency. Agreed to set phone alarm at 8am.</div>
+      <div class="note-signals">
+        <span class="ns-chip">Medication</span>
+        <span class="ns-chip">Stress management</span>
+      </div>
+    </div>
+
+    <div class="note-item">
+      <div class="note-meta-row">
+        <span class="note-tag tag-messaged">WhatsApp</span>
+        <span class="note-date">May 28, 2026 · 2:30 PM</span>
+      </div>
+      <div class="note-text">Sent low-carb Indian meal plan PDF. Highlighted chapati alternatives. Patient confirmed receipt and said he'd try cauliflower rice this week. FBS was 142 that day — good result.</div>
+      <div class="note-signals">
+        <span class="ns-chip">Food guidance</span>
+        <span class="ns-chip">Carb management</span>
+      </div>
+    </div>
+
+    <div class="note-item">
+      <div class="note-meta-row">
+        <span class="note-tag tag-escalated">Escalated</span>
+        <span class="note-date">May 15, 2026 · 9:00 AM</span>
+      </div>
+      <div class="note-text">BP readings 155–160/95–96 for 3 consecutive days. Escalated to Dr. Venkataraman via portal. Doctor reviewed and adjusted amlodipine dosage from 5mg to 10mg. Patient informed.</div>
+      <div class="note-signals">
+        <span class="ns-chip">BP monitoring</span>
+        <span class="ns-chip">Doctor escalation</span>
+      </div>
+    </div>
+
+    <div class="note-item">
+      <div class="note-meta-row">
+        <span class="note-tag tag-called">Called</span>
+        <span class="note-date">May 8, 2026 · 11:00 AM</span>
+      </div>
+      <div class="note-text">Week 4 check-in call. Patient reporting energy improvement. FBS down from 242 to 165 — positive trend noted. Encouraged to continue protocol and increase exercise by 10 minutes/day.</div>
+      <div class="note-signals">
+        <span class="ns-chip">Exercise</span>
+        <span class="ns-chip">Motivation</span>
+      </div>
+    </div>
+
+    <div class="note-item">
+      <div class="note-meta-row">
+        <span class="note-tag tag-called">Called</span>
+        <span class="note-date">Apr 22, 2026 · 10:30 AM</span>
+      </div>
+      <div class="note-text">Welcome call — program onboarding. Walked through app, logging expectations, and protocol phase 1 diet guidelines. Patient seemed motivated. Starting FBS 242 mg/dL. Set 8-week target of &lt;160 mg/dL.</div>
+      <div class="note-signals">
+        <span class="ns-chip">Onboarding</span>
+        <span class="ns-chip">Food guidance</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="window.location.href='01-morning-brief.html'"><span class="nav-icon">&#127968;</span><span>Brief</span></div>
+    <div class="nav-item" onclick="window.location.href='02-patient-profile.html'"><span class="nav-icon">&#128101;</span><span>Patients</span></div>
+    <div class="nav-item" onclick="window.location.href='04-slippage-alerts.html'"><span class="nav-icon">&#9888;</span><span>Alerts</span></div>
+    <div class="nav-item active"><span class="nav-icon">&#128203;</span><span>Notes</span></div>
+    <div class="nav-item" onclick="window.location.href='05-operator-dashboard.html'"><span class="nav-icon">&#128200;</span><span>Program</span></div>
+  </div>
+
+  <div class="watermark">MadhuMitra · Screen 6 of 7 · Coach Notes · v1.0 · <a href="index.html" style="color:var(--teal-600);">All Screens</a></div>
+
+</div>
+
+<script>
+function selectType(el, type) {
+  document.querySelectorAll('.type-btn').forEach(b => {
+    b.className = 'type-btn';
+  });
+  el.classList.add('selected-' + type);
+}
+function showSaved() {
+  document.getElementById('save-success').style.display = 'block';
+  setTimeout(() => { window.location.href = '02-patient-profile.html'; }, 1800);
+}
+</script>
+</body>
+</html>

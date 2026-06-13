@@ -12,6 +12,9 @@ __pycache__/
 contact_log.json
 feedback_log.json
 
+# Claude Code session data
+.claude/
+
 # Temp files
 *.tmp
 .DS_Store

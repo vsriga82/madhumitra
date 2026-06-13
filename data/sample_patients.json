@@ -60,8 +60,16 @@
         "sleep_hours": 5.5,
         "sleep_quality": "woke up multiple times",
         "stress_score": 4,
-        "moods": ["Sad", "Frustrated", "Craving Sweet", "Craving Salty"],
-        "symptoms": ["dizziness", "headache"],
+        "moods": [
+          "Sad",
+          "Frustrated",
+          "Craving Sweet",
+          "Craving Salty"
+        ],
+        "symptoms": [
+          "dizziness",
+          "headache"
+        ],
         "protein_g": 55,
         "carbs_g": 180,
         "blood_pressure_systolic": 128,
@@ -73,6 +81,11 @@
         "food_diary": "White rice, sambar, poori for dinner at cousin's wedding. Lots of sweets.",
         "free_text": "Feeling very tired and dizzy since morning. Skipped my walk because of the wedding function. Had a lot of sweets, feeling very guilty. Very stressed about the function arrangements.",
         "coach_notes": "Third day of poor sleep this week. Stressed about wedding commitments."
+      },
+      "contact": {
+        "last_contacted": "2026-05-28",
+        "last_method": "call",
+        "days_since_contact": 1
       }
     },
     {
@@ -132,7 +145,9 @@
         "sleep_hours": 7.5,
         "sleep_quality": "slept well woke fresh",
         "stress_score": 2,
-        "moods": ["Happy"],
+        "moods": [
+          "Happy"
+        ],
         "symptoms": [],
         "protein_g": 98,
         "carbs_g": 85,
@@ -145,6 +160,11 @@
         "food_diary": "Idli sambar. Salad. Dal vegetables.",
         "free_text": "Walk done. Feeling okay.",
         "coach_notes": "Week 13 — strong early results but FBS flat at 116-120 for 3 weeks. Free-text very brief vs weeks 1-8. Fasting 3 of 5 expected days. No weights in 10 days. Plateau pattern forming."
+      },
+      "contact": {
+        "last_contacted": "2026-05-21",
+        "last_method": "whatsapp",
+        "days_since_contact": 8
       }
     },
     {
@@ -217,6 +237,11 @@
         "food_diary": null,
         "free_text": null,
         "coach_notes": "No log submitted today. Third consecutive missed log this week. Last contact was 4 days ago — patient was travelling."
+      },
+      "contact": {
+        "last_contacted": "2026-05-25",
+        "last_method": "whatsapp",
+        "days_since_contact": 4
       }
     },
     {
@@ -276,8 +301,15 @@
         "sleep_hours": 6.5,
         "sleep_quality": "woke up tired",
         "stress_score": 3,
-        "moods": ["Bored", "Craving Salty"],
-        "symptoms": ["dizziness", "swelling", "sleepy/drowsy"],
+        "moods": [
+          "Bored",
+          "Craving Salty"
+        ],
+        "symptoms": [
+          "dizziness",
+          "swelling",
+          "sleepy/drowsy"
+        ],
         "protein_g": 72,
         "carbs_g": 110,
         "blood_pressure_systolic": 135,
@@ -289,6 +321,11 @@
         "food_diary": "Dosa, sambar, small gulab jamun after lunch.",
         "free_text": "Felt dizzy after my morning walk today. Also noticed my urine looked foamy this morning. Not sure what is happening. Feeling a bit tired.",
         "coach_notes": "Swelling in legs noted today. Has CKD — foamy urine is especially significant. Flag for urgent doctor review."
+      },
+      "contact": {
+        "last_contacted": "2026-05-28",
+        "last_method": "call",
+        "days_since_contact": 1
       }
     },
     {
@@ -348,8 +385,14 @@
         "sleep_hours": 6.5,
         "sleep_quality": "trouble falling asleep",
         "stress_score": 3,
-        "moods": ["Bored", "Craving Sweet"],
-        "symptoms": ["acidity/heartburn/reflux", "gas"],
+        "moods": [
+          "Bored",
+          "Craving Sweet"
+        ],
+        "symptoms": [
+          "acidity/heartburn/reflux",
+          "gas"
+        ],
         "protein_g": 70,
         "carbs_g": 108,
         "blood_pressure_systolic": 122,
@@ -361,6 +404,11 @@
         "food_diary": "Chapati, dal, sabzi, small portion of rice.",
         "free_text": "Okay day. Nothing special to report. Feeling a bit tired but managing. Stomach is a bit uncomfortable.",
         "coach_notes": "Week 3 — fasted only 2 of 4 expected days this week. No weights logged since joining. Only walking so far."
+      },
+      "contact": {
+        "last_contacted": "2026-05-22",
+        "last_method": "whatsapp",
+        "days_since_contact": 7
       }
     },
     {
@@ -420,7 +468,9 @@
         "sleep_hours": 7.5,
         "sleep_quality": "slept well woke fresh",
         "stress_score": 1,
-        "moods": ["Happy"],
+        "moods": [
+          "Happy"
+        ],
         "symptoms": [],
         "protein_g": 99,
         "carbs_g": 82,
@@ -433,6 +483,11 @@
         "food_diary": "Oats for breakfast, large salad, grilled fish for dinner.",
         "free_text": "Feeling absolutely wonderful this week. Full body weights session today — really enjoying the strength training now. Very happy with my progress.",
         "coach_notes": "Consistently strong. Doing both cardio and weights. Fasting 5 of 5 days. Model patient."
+      },
+      "contact": {
+        "last_contacted": "2026-05-24",
+        "last_method": "whatsapp",
+        "days_since_contact": 5
       }
     },
     {
@@ -492,8 +547,14 @@
         "sleep_hours": 7.0,
         "sleep_quality": "slept well woke fresh",
         "stress_score": 3,
-        "moods": ["Frustrated", "Craving Sweet", "Craving Crunchy"],
-        "symptoms": ["acidity/heartburn/reflux"],
+        "moods": [
+          "Frustrated",
+          "Craving Sweet",
+          "Craving Crunchy"
+        ],
+        "symptoms": [
+          "acidity/heartburn/reflux"
+        ],
         "protein_g": 65,
         "carbs_g": 155,
         "blood_pressure_systolic": 124,
@@ -505,6 +566,11 @@
         "food_diary": "Biryani and kebabs at office party, skipped dinner.",
         "free_text": "Feeling bad about today. Office had a big party and I could not resist. Sorry doctor. Will be more careful tomorrow.",
         "coach_notes": "First deviation this week. Two craving types selected. No weights in 5 days."
+      },
+      "contact": {
+        "last_contacted": "2026-05-26",
+        "last_method": "whatsapp",
+        "days_since_contact": 3
       }
     },
     {
@@ -564,8 +630,19 @@
         "sleep_hours": 4.5,
         "sleep_quality": "woke up multiple times",
         "stress_score": 5,
-        "moods": ["Angry", "Frustrated", "Craving Sweet", "Craving Salty", "Craving Crunchy"],
-        "symptoms": ["anxiety", "headache", "sleepy/drowsy", "body pain"],
+        "moods": [
+          "Angry",
+          "Frustrated",
+          "Craving Sweet",
+          "Craving Salty",
+          "Craving Crunchy"
+        ],
+        "symptoms": [
+          "anxiety",
+          "headache",
+          "sleepy/drowsy",
+          "body pain"
+        ],
         "protein_g": 50,
         "carbs_g": 200,
         "blood_pressure_systolic": 145,
@@ -577,6 +654,169 @@
         "food_diary": "Paratha with butter, dal makhani, mithai in evening. Stress eating.",
         "free_text": "Body is not cooperating at all today. Feeling very heavy. Missed my medication in the morning rush. Very stressed about work — boss was very angry. Slept very badly again.",
         "coach_notes": "Third consecutive day of high stress and poor sleep. Suspected sleep apnea — snoring noted by family. Medication compliance inconsistent. No weights in 8 days. Fasting 1 of 5 days."
+      },
+      "contact": {
+        "last_contacted": "2026-05-27",
+        "last_method": "call",
+        "days_since_contact": 2
+      }
+    },
+    {
+      "name": "Arjun Sharma",
+      "age": 47,
+      "gender": "M",
+      "date": "2026-05-29",
+      "program_history": {
+        "program_start_date": "2026-03-29",
+        "week_number": 9,
+        "initial_fbs_mgdl": 196,
+        "initial_weight_kg": 88.0,
+        "protein_target_g": 90,
+        "carb_target_g": 90,
+        "fasting_protocol": false,
+        "fasting_expected_days_per_week": 0,
+        "strength_training_required": true,
+        "clinical_targets": {
+          "fbs_target_mgdl": 95,
+          "fbs_hypoglycemia_risk_mgdl": 80,
+          "conservative_targets": false
+        },
+        "comorbidities": {
+          "hypertension": false,
+          "thyroid_disorder": false,
+          "chronic_kidney_disease": false,
+          "dyslipidemia": true,
+          "cardiovascular_disease": false,
+          "anemia": false,
+          "vitamin_d_deficiency": false,
+          "pcod": false,
+          "fatty_liver": false,
+          "other": null
+        },
+        "medications": {
+          "diabetes_medication": true,
+          "bp_medication": false,
+          "thyroid_medication": false,
+          "cholesterol_medication": true,
+          "other": null
+        },
+        "baseline_labs": {
+          "hba1c_pct": 7.4,
+          "cholesterol_ldl": 150,
+          "vitamin_d": 28,
+          "creatinine": 0.9
+        }
+      },
+      "structured": {
+        "fbs_mgdl": 136,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 0,
+        "exercise_type": null,
+        "exercise_note": null,
+        "weight_kg": 84.0,
+        "medication_taken": true,
+        "sleep_hours": 7.0,
+        "sleep_quality": "ok",
+        "stress_score": 3,
+        "moods": [
+          "Tired"
+        ],
+        "symptoms": [],
+        "protein_g": 70,
+        "carbs_g": 115,
+        "blood_pressure_systolic": 126,
+        "blood_pressure_diastolic": 82,
+        "fasting_day": false,
+        "screen_time_hours": 5
+      },
+      "unstructured": {
+        "food_diary": "Roti, dal, rice, curd. Tea with sugar in evening.",
+        "free_text": "Skipped walk again, work was busy this week.",
+        "coach_notes": "FBS trending up across the week: 118 -> 128 -> 136. Exercise 0 minutes for 3rd consecutive day. No symptoms. Early drift, watch closely."
+      },
+      "contact": {
+        "last_contacted": "2026-05-25",
+        "last_method": "whatsapp",
+        "days_since_contact": 4
+      }
+    },
+    {
+      "name": "Lakshmi Menon",
+      "age": 49,
+      "gender": "F",
+      "date": "2026-05-29",
+      "program_history": {
+        "program_start_date": "2026-03-15",
+        "week_number": 11,
+        "initial_fbs_mgdl": 205,
+        "initial_weight_kg": 79.0,
+        "protein_target_g": 85,
+        "carb_target_g": 90,
+        "fasting_protocol": true,
+        "fasting_expected_days_per_week": 5,
+        "strength_training_required": true,
+        "clinical_targets": {
+          "fbs_target_mgdl": 90,
+          "fbs_hypoglycemia_risk_mgdl": 80,
+          "conservative_targets": false
+        },
+        "comorbidities": {
+          "hypertension": false,
+          "thyroid_disorder": false,
+          "chronic_kidney_disease": false,
+          "dyslipidemia": false,
+          "cardiovascular_disease": false,
+          "anemia": false,
+          "vitamin_d_deficiency": false,
+          "pcod": true,
+          "fatty_liver": true,
+          "other": null
+        },
+        "medications": {
+          "diabetes_medication": true,
+          "bp_medication": false,
+          "thyroid_medication": false,
+          "cholesterol_medication": false,
+          "other": null
+        },
+        "baseline_labs": {
+          "hba1c_pct": 8.7,
+          "cholesterol_ldl": 138,
+          "vitamin_d": 26,
+          "creatinine": 0.8
+        }
+      },
+      "structured": {
+        "fbs_mgdl": 119,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 30,
+        "exercise_type": "walk",
+        "exercise_note": "Short walk",
+        "weight_kg": 73.0,
+        "medication_taken": true,
+        "sleep_hours": 7.0,
+        "sleep_quality": "fine",
+        "stress_score": 2,
+        "moods": [
+          "Neutral"
+        ],
+        "symptoms": [],
+        "protein_g": 88,
+        "carbs_g": 88,
+        "blood_pressure_systolic": 120,
+        "blood_pressure_diastolic": 78,
+        "fasting_day": true,
+        "screen_time_hours": 3
+      },
+      "unstructured": {
+        "food_diary": "Idli. Dal rice.",
+        "free_text": "Ok.",
+        "coach_notes": "Week 11 - strong first 6 weeks, FBS now flat 116-122 for ~2.5 weeks. Logs increasingly short (one-word entries last 8 days, vs detailed entries weeks 1-6). Fasting 2 of 5 expected days this week, down from 5/5. No weights in 12 days. Disengagement / plateau pattern forming."
+      },
+      "contact": {
+        "last_contacted": "2026-05-20",
+        "last_method": "whatsapp",
+        "days_since_contact": 9
       }
     }
   ]
