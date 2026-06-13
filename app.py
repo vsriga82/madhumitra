@@ -452,6 +452,7 @@ if run_clicked:
     if st.session_state.uploaded_file:
         import tempfile
         f = st.session_state.uploaded_file
+        f.seek(0)
         suffix = ".csv" if f.name.endswith(".csv") else ".json"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(f.read())
@@ -1352,9 +1353,19 @@ elif st.session_state.data_loaded:
     st.divider()
     st.markdown("### Patient panel")
     try:
-        filepath = "data/sample_patients.json" if st.session_state.demo_mode else None
-        if filepath:
-            preview_patients = load_patients(filepath)
+        preview_patients = None
+        if st.session_state.demo_mode:
+            preview_patients = load_patients("data/sample_patients.json")
+        elif st.session_state.uploaded_file:
+            import tempfile
+            uf = st.session_state.uploaded_file
+            uf.seek(0)
+            suffix = ".csv" if uf.name.endswith(".csv") else ".json"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(uf.read())
+                _tmp_path = tmp.name
+            preview_patients = load_patients(_tmp_path)
+        if preview_patients:
             import pandas as pd
             rows = []
             for p in preview_patients:
@@ -1363,7 +1374,7 @@ elif st.session_state.data_loaded:
                 comorbidities = [k.replace("_"," ") for k,v in ph.get("comorbidities",{}).items() if v]
                 rows.append({
                     "Name": p.get("name",""), "Age": p.get("age",""),
-                    "Week": ph.get("week_number",""),
+                    "Week": ph.get("week_number","") or "—",
                     "FBS": f"{ps.get('fbs_mgdl','—')} mg/dL" if ps.get("fbs_mgdl") else "No log",
                     "Comorbidities": ", ".join(comorbidities[:2]) if comorbidities else "None",
                 })

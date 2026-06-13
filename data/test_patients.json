@@ -1,0 +1,364 @@
+{
+  "clinic": "MadhuMitra Test Set",
+  "protocol_version": "1.0",
+  "log_date": "2026-06-13",
+  "patients": [
+    {
+      "name": "Vikram Nair",
+      "age": 54,
+      "gender": "M",
+      "date": "2026-06-13",
+      "program_history": {
+        "program_start_date": "2026-04-18",
+        "week_number": 9,
+        "initial_fbs_mgdl": 230,
+        "initial_weight_kg": 98.5,
+        "protein_target_g": 95,
+        "carb_target_g": 85,
+        "fasting_protocol": true,
+        "fasting_expected_days_per_week": 5,
+        "strength_training_required": true,
+        "clinical_targets": { "fbs_target_mgdl": 100, "fbs_hypoglycemia_risk_mgdl": 85, "conservative_targets": true },
+        "comorbidities": {
+          "hypertension": true, "thyroid_disorder": false, "chronic_kidney_disease": false,
+          "dyslipidemia": true, "cardiovascular_disease": false, "anemia": false,
+          "vitamin_d_deficiency": false, "pcod": false, "fatty_liver": true, "other": null
+        },
+        "medications": { "diabetes_medication": true, "bp_medication": true, "thyroid_medication": false, "cholesterol_medication": true, "other": null },
+        "baseline_labs": { "hba1c_pct": 10.1, "cholesterol_ldl": 188, "vitamin_d": 26, "creatinine": 1.0 }
+      },
+      "structured": {
+        "fbs_mgdl": 218,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 0,
+        "exercise_type": null,
+        "exercise_note": null,
+        "weight_kg": 96.2,
+        "medication_taken": false,
+        "sleep_hours": 4.0,
+        "sleep_quality": "woke up multiple times",
+        "stress_score": 5,
+        "moods": ["Angry", "Frustrated", "Craving Sweet", "Craving Salty", "Craving Crunchy"],
+        "symptoms": ["headache", "sleepy/drowsy"],
+        "protein_g": 45,
+        "carbs_g": 225,
+        "blood_pressure_systolic": 148,
+        "blood_pressure_diastolic": 94,
+        "fasting_day": false,
+        "screen_time_hours": 7
+      },
+      "unstructured": {
+        "food_diary": "Poori bhaji with extra ghee for breakfast. Office lunch — biryani and dal makhani. Evening mithai — 3 pieces. Late night Maggi.",
+        "free_text": "Very bad day. Forgot my BP tablet and diabetes tablet both — was rushing to catch an early flight for work. Had a terrible headache since afternoon. My vision felt slightly blurry for a while in the evening but it went away. Stress through the roof with the client presentation.",
+        "coach_notes": "Third consecutive day of stress score 5. FBS has been climbing: 188, 205, 218. Medication missed for the second time this week. No exercise in 6 days. Blurry vision mentioned in free text — needs attention."
+      },
+      "contact": { "last_contacted": "2026-06-11", "last_method": "call", "days_since_contact": 2 }
+    },
+    {
+      "name": "Sunita Reddy",
+      "age": 42,
+      "gender": "F",
+      "date": "2026-06-13",
+      "program_history": {
+        "program_start_date": "2026-05-02",
+        "week_number": 6,
+        "initial_fbs_mgdl": 182,
+        "initial_weight_kg": 71.5,
+        "protein_target_g": 78,
+        "carb_target_g": 100,
+        "fasting_protocol": true,
+        "fasting_expected_days_per_week": 4,
+        "strength_training_required": false,
+        "clinical_targets": { "fbs_target_mgdl": 95, "fbs_hypoglycemia_risk_mgdl": 80, "conservative_targets": false },
+        "comorbidities": {
+          "hypertension": false, "thyroid_disorder": true, "chronic_kidney_disease": false,
+          "dyslipidemia": false, "cardiovascular_disease": false, "anemia": true,
+          "vitamin_d_deficiency": true, "pcod": false, "fatty_liver": false, "other": null
+        },
+        "medications": { "diabetes_medication": true, "bp_medication": false, "thyroid_medication": true, "cholesterol_medication": false, "other": "Iron tablet, Vitamin D" },
+        "baseline_labs": { "hba1c_pct": 7.9, "cholesterol_ldl": 108, "vitamin_d": 15, "creatinine": 0.7 }
+      },
+      "structured": {
+        "fbs_mgdl": 158,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 15,
+        "exercise_type": "walk",
+        "exercise_note": "Stopped walk early due to headache",
+        "weight_kg": 69.8,
+        "medication_taken": true,
+        "sleep_hours": 6.0,
+        "sleep_quality": "woke up tired",
+        "stress_score": 3,
+        "moods": ["Tired", "Bored"],
+        "symptoms": ["headache", "dizziness"],
+        "protein_g": 62,
+        "carbs_g": 145,
+        "blood_pressure_systolic": 126,
+        "blood_pressure_diastolic": 82,
+        "fasting_day": false,
+        "screen_time_hours": 3
+      },
+      "unstructured": {
+        "food_diary": "Idli sambar for breakfast. Small portion of rice and dal for lunch. Skipped dinner — headache was bad.",
+        "free_text": "Headache started in the morning and has not fully gone away. Took a paracetamol but it only helped a little. I noticed my urine looked a bit foamy this morning — not sure if it is because I was dehydrated. Felt dizzy when I stood up quickly after lunch. Taking all my tablets.",
+        "coach_notes": "Week 6 — FBS elevated at 158. Headache and dizziness noted. Patient mentions foamy urine — important to flag, she has thyroid disorder and anemia. Check if this is a new symptom or one-off."
+      },
+      "contact": { "last_contacted": "2026-06-10", "last_method": "whatsapp", "days_since_contact": 3 }
+    },
+    {
+      "name": "Ramesh Pillai",
+      "age": 61,
+      "gender": "M",
+      "date": "2026-06-13",
+      "program_history": {
+        "program_start_date": "2026-04-04",
+        "week_number": 11,
+        "initial_fbs_mgdl": 215,
+        "initial_weight_kg": 89.5,
+        "protein_target_g": 90,
+        "carb_target_g": 90,
+        "fasting_protocol": true,
+        "fasting_expected_days_per_week": 4,
+        "strength_training_required": true,
+        "clinical_targets": { "fbs_target_mgdl": 100, "fbs_hypoglycemia_risk_mgdl": 85, "conservative_targets": true },
+        "comorbidities": {
+          "hypertension": true, "thyroid_disorder": false, "chronic_kidney_disease": false,
+          "dyslipidemia": true, "cardiovascular_disease": true, "anemia": false,
+          "vitamin_d_deficiency": false, "pcod": false, "fatty_liver": false, "other": "stable angina, on nitrates"
+        },
+        "medications": { "diabetes_medication": true, "bp_medication": true, "thyroid_medication": false, "cholesterol_medication": true, "other": "Nitrate for angina, Aspirin" },
+        "baseline_labs": { "hba1c_pct": 9.4, "cholesterol_ldl": 172, "vitamin_d": 30, "creatinine": 1.1 }
+      },
+      "structured": {
+        "fbs_mgdl": 162,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 0,
+        "exercise_type": null,
+        "exercise_note": null,
+        "weight_kg": 87.2,
+        "medication_taken": true,
+        "sleep_hours": 5.5,
+        "sleep_quality": "woke up multiple times",
+        "stress_score": 4,
+        "moods": ["Anxious", "Tired"],
+        "symptoms": ["body pain"],
+        "protein_g": 58,
+        "carbs_g": 188,
+        "blood_pressure_systolic": 138,
+        "blood_pressure_diastolic": 88,
+        "fasting_day": false,
+        "screen_time_hours": 4
+      },
+      "unstructured": {
+        "food_diary": "Dosa with sambar and coconut chutney. Fried rice for lunch. Biscuits and tea twice in afternoon. Chapati and sabzi for dinner.",
+        "free_text": "Had some chest tightness this morning when I was climbing the stairs. It went away after I sat down for 5 minutes. Not sure if it is the angina or just tiredness. Did not go for walk because of this. My back and legs are aching. Have not been sleeping properly because of the pain. Feeling quite anxious about the chest tightness.",
+        "coach_notes": "Week 11 — known cardiovascular disease with stable angina. Chest tightness reported today — even if he thinks it is the usual angina, this must be flagged for doctor review given his profile. FBS elevated. BP above threshold. No exercise. Needs urgent attention."
+      },
+      "contact": { "last_contacted": "2026-06-12", "last_method": "call", "days_since_contact": 1 }
+    },
+    {
+      "name": "Kavitha Subramaniam",
+      "age": 48,
+      "gender": "F",
+      "date": "2026-06-13",
+      "program_history": {
+        "program_start_date": "2026-03-08",
+        "week_number": 14,
+        "initial_fbs_mgdl": 178,
+        "initial_weight_kg": 65.2,
+        "protein_target_g": 78,
+        "carb_target_g": 95,
+        "fasting_protocol": true,
+        "fasting_expected_days_per_week": 5,
+        "strength_training_required": true,
+        "clinical_targets": { "fbs_target_mgdl": 95, "fbs_hypoglycemia_risk_mgdl": 80, "conservative_targets": false },
+        "comorbidities": {
+          "hypertension": false, "thyroid_disorder": false, "chronic_kidney_disease": false,
+          "dyslipidemia": false, "cardiovascular_disease": false, "anemia": false,
+          "vitamin_d_deficiency": true, "pcod": true, "fatty_liver": false, "other": null
+        },
+        "medications": { "diabetes_medication": false, "bp_medication": false, "thyroid_medication": false, "cholesterol_medication": false, "other": "Vitamin D supplement, Metformin low dose" },
+        "baseline_labs": { "hba1c_pct": 7.1, "cholesterol_ldl": 105, "vitamin_d": 22, "creatinine": 0.8 }
+      },
+      "structured": {
+        "fbs_mgdl": 98,
+        "postmeal_mgdl": 128,
+        "exercise_minutes": 50,
+        "exercise_type": "strength training + walk",
+        "exercise_note": "30 min weights at gym followed by 20 min walk. Felt very strong today.",
+        "weight_kg": 62.4,
+        "medication_taken": true,
+        "sleep_hours": 7.5,
+        "sleep_quality": "slept well woke fresh",
+        "stress_score": 1,
+        "moods": ["Happy", "Energetic", "Satisfied"],
+        "symptoms": [],
+        "protein_g": 82,
+        "carbs_g": 90,
+        "blood_pressure_systolic": 112,
+        "blood_pressure_diastolic": 72,
+        "fasting_day": true,
+        "screen_time_hours": 2
+      },
+      "unstructured": {
+        "food_diary": "Eggs and oats for breakfast. Large salad with paneer and chickpeas for lunch. Grilled fish and steamed vegetables for dinner. No sugar or processed food.",
+        "free_text": "Best week in a long time. FBS under 100 for the third day in a row. Weights session went really well — increased my squat weight today. Feeling lighter and more confident. My clothes are fitting differently, husband noticed too!",
+        "coach_notes": "Week 14 — exceptional progress. FBS has dropped from 178 to consistently under 100. Weight down 2.8 kg. Doing 5/5 fasting days, 4 exercise sessions per week. PCOD symptoms reportedly improving — worth discussing with doctor at next visit."
+      },
+      "contact": { "last_contacted": "2026-06-11", "last_method": "whatsapp", "days_since_contact": 2 }
+    },
+    {
+      "name": "Anand Krishnan",
+      "age": 50,
+      "gender": "M",
+      "date": "2026-06-13",
+      "program_history": {
+        "program_start_date": "2026-04-25",
+        "week_number": 7,
+        "initial_fbs_mgdl": 192,
+        "initial_weight_kg": 82.5,
+        "protein_target_g": 88,
+        "carb_target_g": 95,
+        "fasting_protocol": false,
+        "fasting_expected_days_per_week": 0,
+        "strength_training_required": true,
+        "clinical_targets": { "fbs_target_mgdl": 95, "fbs_hypoglycemia_risk_mgdl": 80, "conservative_targets": false },
+        "comorbidities": {
+          "hypertension": false, "thyroid_disorder": false, "chronic_kidney_disease": false,
+          "dyslipidemia": true, "cardiovascular_disease": false, "anemia": false,
+          "vitamin_d_deficiency": false, "pcod": false, "fatty_liver": false, "other": null
+        },
+        "medications": { "diabetes_medication": true, "bp_medication": false, "thyroid_medication": false, "cholesterol_medication": false, "other": null },
+        "baseline_labs": { "hba1c_pct": 7.6, "cholesterol_ldl": 148, "vitamin_d": 34, "creatinine": 0.9 }
+      },
+      "structured": {
+        "fbs_mgdl": 145,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 20,
+        "exercise_type": "walk",
+        "exercise_note": "Short walk around the building during lunch break",
+        "weight_kg": 80.8,
+        "medication_taken": true,
+        "sleep_hours": 7.0,
+        "sleep_quality": "ok",
+        "stress_score": 3,
+        "moods": ["Tired", "Craving Sweet"],
+        "symptoms": [],
+        "protein_g": 72,
+        "carbs_g": 118,
+        "blood_pressure_systolic": 124,
+        "blood_pressure_diastolic": 80,
+        "fasting_day": false,
+        "screen_time_hours": 5
+      },
+      "unstructured": {
+        "food_diary": "Upma for breakfast. Office lunch — rice curd and pickle. Had two biscuits with evening tea. Chapati and dal for dinner.",
+        "free_text": "Okay day. Did a short walk at lunchtime. Sweet cravings were bad in the afternoon — resisted mostly but had two biscuits. Work is busy but manageable. FBS not moving much.",
+        "coach_notes": "Week 7 — FBS stuck in 138–148 range for 3 weeks. Exercise consistently below target (20 min vs 30 min goal). No strength training since joining. Sweet cravings recurring. Motivation seems okay — just not pushing hard enough on exercise and food choices."
+      },
+      "contact": { "last_contacted": "2026-06-09", "last_method": "whatsapp", "days_since_contact": 4 }
+    },
+    {
+      "name": "Meera Iyer",
+      "age": 46,
+      "gender": "F",
+      "date": "2026-06-13",
+      "program_history": {
+        "program_start_date": "2026-06-02",
+        "week_number": 2,
+        "initial_fbs_mgdl": 168,
+        "initial_weight_kg": 74.0,
+        "protein_target_g": 75,
+        "carb_target_g": 100,
+        "fasting_protocol": false,
+        "fasting_expected_days_per_week": 0,
+        "strength_training_required": true,
+        "clinical_targets": { "fbs_target_mgdl": 100, "fbs_hypoglycemia_risk_mgdl": 80, "conservative_targets": false },
+        "comorbidities": {
+          "hypertension": false, "thyroid_disorder": false, "chronic_kidney_disease": false,
+          "dyslipidemia": false, "cardiovascular_disease": false, "anemia": true,
+          "vitamin_d_deficiency": true, "pcod": true, "fatty_liver": false, "other": null
+        },
+        "medications": { "diabetes_medication": true, "bp_medication": false, "thyroid_medication": false, "cholesterol_medication": false, "other": "Iron supplement" },
+        "baseline_labs": { "hba1c_pct": 7.5, "cholesterol_ldl": 118, "vitamin_d": 16, "creatinine": 0.7 }
+      },
+      "structured": {
+        "fbs_mgdl": null,
+        "postmeal_mgdl": null,
+        "exercise_minutes": null,
+        "exercise_type": null,
+        "exercise_note": null,
+        "weight_kg": null,
+        "medication_taken": null,
+        "sleep_hours": null,
+        "sleep_quality": null,
+        "stress_score": null,
+        "moods": [],
+        "symptoms": [],
+        "protein_g": null,
+        "carbs_g": null,
+        "blood_pressure_systolic": null,
+        "blood_pressure_diastolic": null,
+        "fasting_day": false,
+        "screen_time_hours": null
+      },
+      "unstructured": {
+        "food_diary": null,
+        "free_text": null,
+        "coach_notes": "Week 2 — only 3 logs submitted in the first 2 weeks. No log today, yesterday, or the day before. New patient, seems overwhelmed by the app. Last WhatsApp message was seen but not replied to. Needs a personal call to re-engage before she drops out."
+      },
+      "contact": { "last_contacted": "2026-06-10", "last_method": "whatsapp", "days_since_contact": 3 }
+    },
+    {
+      "name": "Sudhir Mehta",
+      "age": 57,
+      "gender": "M",
+      "date": "2026-06-13",
+      "program_history": {
+        "program_start_date": "2026-02-21",
+        "week_number": 16,
+        "initial_fbs_mgdl": 225,
+        "initial_weight_kg": 94.0,
+        "protein_target_g": 92,
+        "carb_target_g": 85,
+        "fasting_protocol": true,
+        "fasting_expected_days_per_week": 5,
+        "strength_training_required": true,
+        "clinical_targets": { "fbs_target_mgdl": 90, "fbs_hypoglycemia_risk_mgdl": 80, "conservative_targets": false },
+        "comorbidities": {
+          "hypertension": false, "thyroid_disorder": false, "chronic_kidney_disease": true,
+          "dyslipidemia": true, "cardiovascular_disease": false, "anemia": false,
+          "vitamin_d_deficiency": false, "pcod": false, "fatty_liver": false, "other": "CKD stage 2, microalbuminuria"
+        },
+        "medications": { "diabetes_medication": true, "bp_medication": false, "thyroid_medication": false, "cholesterol_medication": true, "other": "ACE inhibitor" },
+        "baseline_labs": { "hba1c_pct": 9.6, "cholesterol_ldl": 165, "vitamin_d": 31, "creatinine": 1.5 }
+      },
+      "structured": {
+        "fbs_mgdl": 132,
+        "postmeal_mgdl": null,
+        "exercise_minutes": 30,
+        "exercise_type": "walk",
+        "exercise_note": "Morning walk completed, felt okay",
+        "weight_kg": 89.5,
+        "medication_taken": true,
+        "sleep_hours": 6.5,
+        "sleep_quality": "ok",
+        "stress_score": 2,
+        "moods": ["Neutral"],
+        "symptoms": ["swelling"],
+        "protein_g": 88,
+        "carbs_g": 92,
+        "blood_pressure_systolic": 128,
+        "blood_pressure_diastolic": 82,
+        "fasting_day": true,
+        "screen_time_hours": 2.5
+      },
+      "unstructured": {
+        "food_diary": "Idli and egg for breakfast. Dal rice with vegetables for lunch. Curd and salad for dinner. Fasting day followed well.",
+        "free_text": "Walk went okay today. Noticed my ankles are slightly swollen since yesterday evening. Also the urine has been looking foamy for the last two days — I thought it was just the way the light was but it is definitely there. Not sure if I should be worried. Otherwise feeling fine.",
+        "coach_notes": "Week 16 — good progress on FBS (225 to 132). Has CKD stage 2 with microalbuminuria. Patient is now reporting foamy urine for 2 days AND ankle swelling. This combination with his CKD profile is a significant red flag. Needs urgent doctor escalation even though FBS looks okay today."
+      },
+      "contact": { "last_contacted": "2026-06-12", "last_method": "call", "days_since_contact": 1 }
+    }
+  ]
+}
