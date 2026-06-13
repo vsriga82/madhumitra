@@ -55,6 +55,7 @@ st.markdown("""
 .pill-watch   { background: rgba(245,158,11,0.35); }
 .pill-routine { background: rgba(16,185,129,0.35); }
 .pill-slip    { background: rgba(249,115,22,0.35); }
+.pill-queue   { background: rgba(99,102,241,0.35); }
 
 /* ↑ top anchor in section headers */
 .top-link,
@@ -422,10 +423,6 @@ with st.sidebar:
         st.markdown("**Navigate**")
         if st.button("🏠 Morning Brief", use_container_width=True):
             st.session_state.view = "brief"
-            st.session_state.selected_patient = None
-            st.rerun()
-        if st.button("⚠️ Slippage Alerts", use_container_width=True):
-            st.session_state.view = "slippage"
             st.session_state.selected_patient = None
             st.rerun()
         if st.button("📋 Coach Notes", use_container_width=True):
@@ -1255,6 +1252,8 @@ def render_morning_brief(r):
         pills.append(f'<a href="#section-routine" class="summary-pill pill-routine"><div class="num">{len(routine)}</div><div class="lbl">Routine</div></a>')
     if on_track:
         pills.append(f'<a href="#section-ontrack" class="summary-pill pill-routine" style="background:rgba(16,185,129,0.25)"><div class="num">{len(on_track)}</div><div class="lbl">On Track</div></a>')
+    if queue:
+        pills.append(f'<a href="#section-queue" class="summary-pill pill-queue"><div class="num">{len(queue)}</div><div class="lbl">Review</div></a>')
 
     st.markdown(f"""
 <div id="brief-top"></div>
@@ -1285,8 +1284,6 @@ def render_morning_brief(r):
   <span><strong>{count} patient{"s" if count>1 else ""}</strong> showing engagement drop — warm check-in recommended</span>
   <a href="#brief-top" class="top-link" style="margin-left:auto">↑ top</a>
 </div>""", unsafe_allow_html=True)
-        if st.button("→ Open Slippage Alerts", key="brief_slip_nav", use_container_width=False):
-            st.session_state.view = "slippage"; st.rerun()
         for i, p in enumerate(slippage):
             render_slippage_card(p, i)
 
@@ -1301,10 +1298,10 @@ def render_morning_brief(r):
             render_patient_card(p, i, "ontrack")
 
     if queue:
-        st.markdown(f'<div class="section-header"><span class="section-label">🔵 Review Queue ({len(queue)})</span></div>', unsafe_allow_html=True)
-        with st.expander("Low confidence — apply clinical judgement"):
-            for i, p in enumerate(queue):
-                render_patient_card(p, i, "queue")
+        st.markdown(f'<div id="section-queue" class="section-header"><span class="section-label">🔵 Manual Review ({len(queue)})</span><a href="#brief-top" class="top-link">↑ top</a></div>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:11px;color:#9CA3AF;margin:-4px 0 10px;">AI confidence was low — apply clinical judgement before acting.</p>', unsafe_allow_html=True)
+        for i, p in enumerate(queue):
+            render_patient_card(p, i, "queue")
 
     # ── Reviewed this session ─────────────────────────────────
     all_p_flat = r["auto_list"] + r["queue_list"] + r["nudge_list"]
@@ -1347,8 +1344,6 @@ if st.session_state.results:
         render_patient_profile()
     elif v == "notes":
         render_coach_notes()
-    elif v == "slippage":
-        render_slippage_page(st.session_state.results)
     else:
         render_morning_brief(st.session_state.results)
 
