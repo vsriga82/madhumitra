@@ -1,0 +1,11 @@
+Patient,Ground Truth,Remapped Expected,Naked LLM,Result
+Priya Sharma,High,High,Medium,FAIL
+Suresh Nair,High,High,High,PASS
+Meena Patel,Medium,Medium,Medium,PASS
+Deepak Verma,High,High,High,PASS
+Fatima Sheikh,Medium,Medium,Medium,PASS
+Anita Rao,Manual Queue,Medium,On Track,FAIL
+Rajan Kumar,Nudge,Low,Medium,FAIL
+Karthik Iyer,On Track,On Track,On Track,PASS
+Arjun Sharma,Medium,Medium,Medium,PASS
+Lakshmi Menon,Nudge,Low,Medium,FAIL

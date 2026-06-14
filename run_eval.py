@@ -37,11 +37,12 @@ The EXPECTED tiers below use that same vocabulary so the comparison is apples-to
 import sys
 import csv
 import json
+import asyncio
 import argparse
 
-from parser import parse_all, load_thresholds
+from parser import parse_all, load_patients, load_thresholds
 from prompt import load_protocol_files
-from reasoning import run_reasoning, ENABLE_VERIFICATION
+from reasoning import run_reasoning, ENABLE_VERIFICATION, client
 from ranker import run_ranker
 
 
@@ -188,11 +189,195 @@ def score(final):
     print(f"📄 Results written to {out_path} — open it in Excel/Sheets to review.\n")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# NAKED MODE — bare Claude baseline, zero scaffolding
+#
+# Ground truth remapping: "Nudge" and "Manual Queue" are protocol-specific
+# routing categories that don't exist in a bare LLM world. For fair scoring
+# we remap them to their closest tier equivalents before comparing:
+#   Nudge        → Low    (behavioral, not clinical — lowest-priority action)
+#   Manual Queue → Medium (borderline confidence — mid-tier attention)
+# The remapping is printed in the output so the slide is transparent.
+# ─────────────────────────────────────────────────────────────────────────────
+NAKED_REMAP = {"Nudge": "Low", "Manual Queue": "Medium"}
+
+NAKED_VALID = {"High", "Medium", "Low", "On Track"}
+
+
+def _format_patient_for_naked(patient):
+    """Render full patient data as readable plain text for the bare-LLM prompt."""
+    s  = patient.get("structured", {}) or {}
+    u  = patient.get("unstructured", {}) or {}
+    ph = patient.get("program_history", {}) or {}
+    comorbidities = [k.replace("_", " ")
+                     for k, v in ph.get("comorbidities", {}).items() if v]
+    meds_on = [k.replace("_", " ")
+               for k, v in ph.get("medications", {}).items() if v]
+
+    def val(v, unit=""):
+        return f"{v}{unit}" if v is not None else "not logged"
+
+    bp_sys = s.get("blood_pressure_systolic")
+    bp_dia = s.get("blood_pressure_diastolic")
+    bp_str = f"{bp_sys}/{bp_dia} mmHg" if bp_sys else "not logged"
+
+    lines = [
+        f"Patient: {patient.get('name')}, Age {patient.get('age')}, {patient.get('gender')}",
+        f"Week in program: {ph.get('week_number', 'unknown')}",
+        f"Initial FBS at enrolment: {val(ph.get('initial_fbs_mgdl'), ' mg/dL')}",
+        f"Comorbidities: {', '.join(comorbidities) or 'none'}",
+        f"Current medications: {', '.join(meds_on) or 'none'}",
+        "",
+        "Today's log:",
+        f"  Fasting blood sugar : {val(s.get('fbs_mgdl'), ' mg/dL')}",
+        f"  Blood pressure      : {bp_str}",
+        f"  Exercise            : {val(s.get('exercise_minutes'), ' min')} ({s.get('exercise_type') or '—'})",
+        f"  Sleep               : {val(s.get('sleep_hours'), ' hrs')} — {s.get('sleep_quality') or '—'}",
+        f"  Stress (1–5)        : {val(s.get('stress_score'))}",
+        f"  Weight              : {val(s.get('weight_kg'), ' kg')}",
+        f"  Medication taken    : {val(s.get('medication_taken'))}",
+        f"  Protein / Carbs     : {val(s.get('protein_g'), 'g')} / {val(s.get('carbs_g'), 'g')}",
+        f"  Symptoms reported   : {', '.join(s.get('symptoms', [])) or 'none'}",
+        f"  Moods               : {', '.join(s.get('moods', [])) or 'none'}",
+        "",
+        "Patient's own words:",
+        f"  Food diary   : {u.get('food_diary') or 'not provided'}",
+        f"  Free text    : {u.get('free_text') or 'not provided'}",
+        "",
+        "Coach's observation notes:",
+        f"  {u.get('coach_notes') or 'not provided'}",
+    ]
+    return "\n".join(lines)
+
+
+async def _naked_classify_one(patient, semaphore):
+    """Single bare-Claude call — no protocol, no schema, just a tier label."""
+    system = (
+        "You are a clinical coach at a diabetes reversal program. "
+        "Review the patient data and classify their current status as exactly one of:\n"
+        "  High     — requires same-day coach contact; possible clinical escalation needed\n"
+        "  Medium   — needs coach attention within 24 hours\n"
+        "  Low      — routine follow-up at next scheduled check-in\n"
+        "  On Track — patient is progressing well, no action needed\n\n"
+        "Reply with ONLY the single tier label. Nothing else — no explanation, no punctuation."
+    )
+    user = _format_patient_for_naked(patient)
+    name = patient.get("name", "Unknown")
+
+    async with semaphore:
+        try:
+            response = await client.messages.create(
+                model="claude-sonnet-4-6",
+                system=system,
+                messages=[{"role": "user", "content": user}],
+                max_tokens=10
+            )
+            raw = (response.content[0].text if response.content else "").strip()
+            # Normalise casing, strip stray punctuation
+            for tier in NAKED_VALID:
+                if raw.lower() == tier.lower():
+                    print(f"  ✓ {name}: {tier}")
+                    return name, tier
+            # Fallback if model ignored instructions
+            print(f"  ? {name}: unrecognised response '{raw}' — defaulting Medium")
+            return name, "Medium"
+        except Exception as e:
+            print(f"  ✗ {name}: call failed ({e}) — defaulting Medium")
+            return name, "Medium"
+
+
+async def _naked_classify_all(patients):
+    semaphore = asyncio.Semaphore(2)
+    tasks = [_naked_classify_one(p, semaphore) for p in patients]
+    return dict(await asyncio.gather(*tasks))
+
+
+def run_naked_pipeline():
+    """Load all patients (no rules filter), classify each with bare Claude."""
+    patients = load_patients(DATA_FILE)
+    print(f"\nNAKED LLM — sending all {len(patients)} patients (no rules pre-filter)...\n")
+    return asyncio.run(_naked_classify_all(patients))
+
+
+def score_naked(name_to_tier):
+    """Score the naked results against ground truth, with protocol-concept remapping."""
+    rows = []
+    tp = fp = 0
+    high_risk_total = high_risk_caught = 0
+    exact_matches = 0
+
+    for name, expected_raw in EXPECTED.items():
+        expected = NAKED_REMAP.get(expected_raw, expected_raw)  # remap Nudge/Manual Queue
+        actual   = name_to_tier.get(name, "MISSING")
+        match    = actual.lower() == expected.lower()
+        if match:
+            exact_matches += 1
+
+        if expected_raw in HIGH_RISK_TIERS:
+            high_risk_total += 1
+            if actual in HIGH_RISK_TIERS:
+                high_risk_caught += 1
+
+        if actual in HIGH_RISK_TIERS:
+            if expected_raw in HIGH_RISK_TIERS:
+                tp += 1
+            else:
+                fp += 1
+
+        rows.append((name, expected_raw, expected, actual, match))
+
+    # ── Per-patient table ──
+    print("=" * 88)
+    print("NAKED LLM (no protocol)  —  same model (claude-sonnet-4-6), zero scaffolding")
+    print("=" * 88)
+    print(f"{'PATIENT':<16}{'GROUND TRUTH':<16}{'REMAPPED':<14}{'LLM SAID':<14}{'RESULT'}")
+    print("-" * 88)
+    for name, expected_raw, expected, actual, match in rows:
+        remap_note = f"({NAKED_REMAP[expected_raw]})" if expected_raw in NAKED_REMAP else ""
+        flag = "PASS" if match else "FAIL"
+        print(f"{name:<16}{expected_raw:<16}{expected:<14}{actual:<14}{flag}  {remap_note}")
+    print("=" * 88)
+
+    n = len(EXPECTED)
+    recall    = (high_risk_caught / high_risk_total * 100) if high_risk_total else 0.0
+    precision = (tp / (tp + fp) * 100) if (tp + fp) else 0.0
+    accuracy  = exact_matches / n * 100
+
+    print(f"\nNote: 'Nudge'→'Low' and 'Manual Queue'→'Medium' remapped (protocol-only concepts).")
+    print(f"Exact-tier accuracy : {exact_matches}/{n}  ({accuracy:.0f}%)")
+    print(f"Alert precision     : {precision:.0f}%   (of {tp+fp} flagged High, {tp} truly High)")
+    print(f"High-risk recall    : {recall:.0f}%   ({high_risk_caught}/{high_risk_total} high-risk caught)"
+          f"   {'✅ SAFE' if recall == 100 else '🚨 MISS — non-negotiable failure'}")
+    print()
+    if recall < 100:
+        missed = [n for n, er, e, a, _ in rows if er in HIGH_RISK_TIERS and a not in HIGH_RISK_TIERS]
+        print(f"⚠️  High-risk patients NOT caught as High: {missed}\n")
+
+    out_path = "eval_results_naked.csv"
+    with open(out_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["Patient", "Ground Truth", "Remapped Expected", "Naked LLM", "Result"])
+        for name, expected_raw, expected, actual, match in rows:
+            w.writerow([name, expected_raw, expected, actual, "PASS" if match else "FAIL"])
+    print(f"📄 Results written to {out_path}\n")
+
+    return {"accuracy": accuracy, "precision": precision, "recall": recall,
+            "exact": exact_matches, "n": n, "tp": tp, "fp": fp,
+            "hr_caught": high_risk_caught, "hr_total": high_risk_total}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true",
                     help="Run parser/bucketing only — no LLM call, no token spend.")
+    ap.add_argument("--naked", action="store_true",
+                    help="Bare-Claude baseline: no protocol, no rules, no schema.")
     args = ap.parse_args()
+
+    if args.naked:
+        name_to_tier = run_naked_pipeline()
+        score_naked(name_to_tier)
+        return
 
     final = run_pipeline(dry_run=args.dry_run)
     if final is None:   # dry run

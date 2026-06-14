@@ -897,3 +897,53 @@ After demo: pivot to TU real-ROI work (STAR navigator) + the Claude port.
   program-week rule gap. Fix rule = post-demo.
 - Claude port + verifier-on + Netlify Function (live demo) + 3rd ranker agent = all POST-demo.
 - After demo: pivot to TransUnion STAR-navigator (the real-ROI work) + Claude port as first rep.
+
+---
+
+## Session Update — June 13, 2026 (cont. 3) — FINAL: Claude port done, app deployed, ablation run
+
+### Claude port — DONE
+- reasoning.py ported from OpenAI gpt-4o → Claude (done in Claude Code on the Mac).
+- NOTE: my chat-sandbox copy is still the OLD OpenAI version — the Mac is the source of truth now.
+- Interview-relevant rep complete: project now genuinely "built on the Anthropic API."
+
+### App — deployed & tested
+- Streamlit app tested with uploaded JSON (new 10-patient data) — works. Both flows present:
+  agent-munching (rules-vs-LLM split visible) + coach dashboard (all bands + feedback loop).
+- Decision: this is the working live demo. (Teal HTML showpiece on Netlify still optional polish
+  — not blocking; the Streamlit app already tells the story for Mahesh.)
+- REMINDER: redeploy reflects today's logic (10 patients, Anita=queue, Rajan+Lakshmi=Nudge, prompt fix).
+
+### ABLATION RESULT — strong slide data point (Claude both sides, only variable = the protocol)
+Added `--naked` mode to run_eval.py (no protocol/rules/schema/taxonomy; all 10 → bare Claude;
+returns tier only; scored vs same ground truth; writes eval_results_naked.csv).
+
+|                     | PROTOCOL pipeline | NAKED Claude |
+|---------------------|-------------------|--------------|
+| Exact-tier accuracy | 8/10 (80%)        | 6/10 (60%)   |
+| High-risk recall    | 100% ✅            | 67% 🚨        |
+| Alert precision     | 75%               | 100%*        |
+
+- **Headline = high-risk recall 100% vs 67%.** Naked Claude called **Priya Sharma Medium** (she's
+  High) — missed a high-risk patient. Protocol catches her via the DETERMINISTIC RULES layer before
+  the LLM runs. This is the non-negotiable safety point.
+- *PRECISION TRAP: naked's 100% precision is an ILLUSION — it only flagged 2 High vs protocol's 4,
+  so fewer chances to be wrong. It bought precision by UNDER-FLAGGING (same cause as the recall miss).
+  On the slide, show precision ONLY next to recall, or drop it. Never show naked precision alone.*
+- **Routing point:** Rajan + Lakshmi correctly → Nudge (behavioral coaching) in the protocol;
+  naked Claude dumps them into Medium — no concept of disengagement-vs-clinical, wastes coach time.
+- **Framing for slide:** "Same Claude model, with vs without our protocol. Recall 100%→67%,
+  accuracy 80%→60%, routing collapses." ALWAYS label **"directional — 10-case eval set"** (n=10).
+  Answers the "are you a wrapper or a product?" question with EVIDENCE. Best single data point in the deck.
+
+### Security reminder (carry forward)
+- secrets.toml now holds the CLAUDE key (ANTHROPIC_API_KEY). Before any git push: confirm it's in
+  .gitignore and NOT committed. If ever committed, rotate. (Keys get scraped off GitHub fast.)
+
+### NEXT — pivot to real ROI (per Sri's own plan)
+- Tomorrow AM: TransUnion work — the STAR-navigator internal use case is the real career leverage.
+- Do it in CLAUDE CODE (work setup) — today proved the chat = judgment/strategy, Claude Code =
+  execution. The build/eval/deploy loop belongs in Claude Code.
+- MadhuMitra is at a clean, demo-ready, measured, deployed state. Remaining MadhuMitra items
+  (teal Netlify showpiece, verifier-on, Netlify Function live demo, 3rd ranker agent) are all
+  optional polish / post-demo — none blocking.

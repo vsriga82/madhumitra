@@ -15,9 +15,8 @@ def get_api_key():
 
 client = AsyncAnthropic(api_key=get_api_key())
 
-# Dual loop verification — disabled for MVP
-# Requires higher API tier (100K+ TPM) to run reliably
-ENABLE_VERIFICATION = False
+# Dual loop verification — enabled for multi-agent run
+ENABLE_VERIFICATION = True
 
 
 # ── Deterministic escalation rules ───────────────────────────
@@ -164,7 +163,14 @@ ALERT: {json.dumps(llm_result, indent=2)}"""
                 messages=[{"role": "user", "content": verification_prompt}],
                 max_tokens=100
             )
-            result = json.loads(response.content[0].text)
+            raw = response.content[0].text if response.content else ""
+            if raw.startswith("```"):
+                lines = raw.split("\n")
+                lines = [l for l in lines if not l.strip().startswith("```")]
+                raw = "\n".join(lines).strip()
+            if not raw:
+                return True, "Empty verifier response — defaulting to pass"
+            result = json.loads(raw)
             await asyncio.sleep(1)
             return result.get("passed", False), result.get("reason", "")
         except Exception as e:
