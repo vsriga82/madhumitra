@@ -5,9 +5,13 @@ Stores coach actions as labelled data points.
 Every tap, contact, and correction is ground truth
 for future calibration of the alert system.
 
-Storage: local JSON files (MVP)
-  contact_log.json  — who was contacted, when, cooling period
-  feedback_log.json — 👍👎 reactions with reasons
+Storage strategy (in priority order):
+  1. Supabase (Postgres) — durable, survives Streamlit Cloud redeploys.
+     Credentials read from st.secrets["SUPABASE_URL/KEY"]. Configured via
+     the Supabase console + Streamlit Cloud secrets UI.
+  2. Local JSON fallback — used automatically when Supabase is not
+     configured (local dev, CI, or pre-Supabase deploys).
+     contact_log.json / feedback_log.json
 
 Phase 2: this data drives fine-tuning of alert ranking
 and confidence thresholds per clinic.
@@ -17,6 +21,8 @@ import json
 import os
 from datetime import datetime, date, timedelta
 from pathlib import Path
+
+import db as _db
 
 CONTACT_LOG  = Path("contact_log.json")
 FEEDBACK_LOG = Path("feedback_log.json")
@@ -156,9 +162,23 @@ def record_feedback(patient_name, severity, track, signals,
     Records coach reaction to an alert.
     reaction: "correct" (👍) or "incorrect" (👎)
     wrong_reason: selected from dropdown if 👎
-    """
-    log = load_json(FEEDBACK_LOG)
 
+    Writes to Supabase (durable) and local JSON (fallback).
+    reasoning is kept in the JSON log for local inspection but is NOT
+    sent to Supabase (raw LLM text; excluded per privacy policy).
+    """
+    # ── Supabase (primary, durable) ──
+    _db.save_feedback(
+        patient_name=patient_name,
+        severity=severity,
+        track=track,
+        signals=signals,
+        reaction=reaction,
+        wrong_reason=wrong_reason,
+    )
+
+    # ── Local JSON (fallback / local dev) ──
+    log = load_json(FEEDBACK_LOG)
     entry_id = f"{patient_name}_{date.today()}"
     log[entry_id] = {
         "patient_name":   patient_name,
@@ -168,16 +188,23 @@ def record_feedback(patient_name, severity, track, signals,
         "track":          track,
         "signals":        signals,
         "reasoning":      reasoning,
-        "reaction":       reaction,       # "correct" or "incorrect"
-        "wrong_reason":   wrong_reason,   # None if 👍
+        "reaction":       reaction,
+        "wrong_reason":   wrong_reason,
     }
-
     save_json(FEEDBACK_LOG, log)
     return log[entry_id]
 
 
 def get_feedback_summary():
-    """Returns summary stats for mentor/evaluation view."""
+    """
+    Returns summary stats for mentor/evaluation view.
+    Prefers Supabase (durable across deploys); falls back to local JSON.
+    """
+    db_summary = _db.get_feedback_summary_db()
+    if db_summary is not None:
+        return db_summary
+
+    # Local JSON fallback
     log = load_json(FEEDBACK_LOG)
     if not log:
         return {"total": 0, "correct": 0, "incorrect": 0, "precision": None}
@@ -194,11 +221,11 @@ def get_feedback_summary():
             wrong_reasons[r] = wrong_reasons.get(r, 0) + 1
 
     return {
-        "total":        total,
-        "correct":      correct,
-        "incorrect":    incorrect,
-        "precision":    precision,
-        "wrong_reasons": wrong_reasons
+        "total":         total,
+        "correct":       correct,
+        "incorrect":     incorrect,
+        "precision":     precision,
+        "wrong_reasons": wrong_reasons,
     }
 
 

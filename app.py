@@ -11,6 +11,7 @@ from feedback import (
     record_feedback, get_feedback_summary, get_all_feedback,
     extend_cooling
 )
+import db as _db
 
 st.set_page_config(
     page_title="MadhuMitra",
@@ -491,6 +492,12 @@ if run_clicked:
 
         total_alerts = len(final["auto_list"]) + len(final["queue_list"])
         status.update(label=f"✓ Analysis complete — {total_alerts} alerts generated", state="complete")
+
+        # ── Persist to Supabase (non-blocking; degrades gracefully if not configured) ──
+        run_id = _db.save_triage_run(final.get("summary", {}))
+        if run_id:
+            _db.save_all_alerts(run_id, final)
+            st.session_state["db_run_id"] = run_id
 
 
 # ── Helpers ───────────────────────────────────────────────────
