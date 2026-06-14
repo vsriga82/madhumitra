@@ -352,6 +352,7 @@ defaults = {
     "reviewed_patients": set(),  # patients marked done; filtered from active sections
     "coach_notes": [],
     "snooze_set": set(),
+    "notes_loaded_from_db": False,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -571,12 +572,15 @@ def get_contact_days(name):
     raw = st.session_state.get("raw_patients", {}).get(name, {})
     return raw.get("contact", {}).get("days_since_contact")
 
-def _save_note(name, action_type, note_text, tags):
-    st.session_state.coach_notes.append({
+def _save_note(name, action_type, note_text, tags, outcome=None, followup_date=None):
+    entry = {
         "patient_name": name, "action_type": action_type,
         "note_text": note_text, "tags": tags,
+        "outcome": outcome, "followup_date": str(followup_date) if followup_date else None,
         "created_at": datetime.now().strftime("%b %d, %Y · %I:%M %p")
-    })
+    }
+    st.session_state.coach_notes.append(entry)
+    _db.save_note(name, action_type, note_text, tags, outcome, followup_date)
 
 SAFE_MODIFIERS = ["stable","well controlled","no concern","on target","improvement",
                   "improving","within range","good","normal","not concern","controlled"]
@@ -1119,12 +1123,23 @@ def render_coach_notes():
     with s2:
         if st.button("✓ Save Note", use_container_width=True, type="primary", key="notes_save"):
             if note_text.strip() and selected_name:
-                _save_note(selected_name, action_map[sel_action], note_text.strip(), selected_tags)
+                _save_note(selected_name, action_map[sel_action], note_text.strip(),
+                           selected_tags, outcome, followup)
+                st.session_state.notes_loaded_from_db = False  # force reload on next render
                 st.success(f"✓ Note saved for {selected_name}" + (f" · Follow-up: {followup}" if followup else ""))
                 st.session_state.view = "brief"
                 st.rerun()
             else:
                 st.warning("Please enter a note.")
+
+    # Load persisted notes from Supabase once per session (lazy, on first view)
+    if not st.session_state.notes_loaded_from_db:
+        db_notes = _db.get_notes_db()
+        existing_keys = {(n["patient_name"], n["created_at"]) for n in st.session_state.coach_notes}
+        for n in db_notes:
+            if (n.get("patient_name"), n.get("created_at")) not in existing_keys:
+                st.session_state.coach_notes.append(n)
+        st.session_state.notes_loaded_from_db = True
 
     patient_notes = [n for n in st.session_state.coach_notes if n.get("patient_name") == selected_name]
     if patient_notes:

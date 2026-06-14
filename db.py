@@ -245,3 +245,72 @@ def get_feedback_summary_db() -> Optional[dict]:
         "precision":     round(correct / total * 100, 1),
         "wrong_reasons": wrong_reasons,
     }
+
+
+# ── coach_notes ───────────────────────────────────────────────────────────────
+
+def save_note(
+    patient_name: str,
+    action_type: str,
+    note_text: str,
+    tags: list,
+    outcome: Optional[str] = None,
+    followup_date=None,
+) -> bool:
+    """Insert one coach note. note_text is coach-authored — not patient free-text."""
+    db = _client()
+    if not db:
+        return False
+
+    tok = patient_token(patient_name)
+    alert_id = _latest_alert_id(db, tok)
+
+    row = {
+        "alert_id":     alert_id,
+        "patient_token": tok,
+        "action_type":  action_type,
+        "note_text":    note_text,
+        "tags":         tags or [],
+        "outcome":      outcome,
+        "followup_date": str(followup_date) if followup_date else None,
+    }
+    try:
+        db.table("coach_notes").insert(row).execute()
+        return True
+    except Exception:
+        return False
+
+
+def get_notes_db(patient_name: Optional[str] = None) -> list:
+    """
+    Fetch coach notes from Supabase.
+    If patient_name is given, returns only that patient's notes.
+    Returns [] if Supabase is not configured or query fails.
+    """
+    db = _client()
+    if not db:
+        return []
+
+    try:
+        q = db.table("coach_notes").select(
+            "patient_token, action_type, note_text, tags, outcome, followup_date, created_at"
+        ).order("created_at", desc=True)
+
+        if patient_name:
+            q = q.eq("patient_token", patient_token(patient_name))
+
+        resp = q.execute()
+        rows = resp.data or []
+
+        # Re-attach patient_name placeholder so display code can use same field
+        for r in rows:
+            r["patient_name"] = patient_name or f"token:{r['patient_token'][:6]}"
+            # Normalise created_at to the display format used in session state
+            try:
+                from datetime import datetime as _dt
+                r["created_at"] = _dt.fromisoformat(r["created_at"]).strftime("%b %d, %Y · %I:%M %p")
+            except Exception:
+                pass
+        return rows
+    except Exception:
+        return []
